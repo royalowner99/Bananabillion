@@ -287,22 +287,49 @@ async function sendTaps() {
   }
 }
 
-// Show Floating Coin
+// Show Advanced Floating Coin with Effects
 function showFloatingCoin(e) {
+  const rect = e.target.getBoundingClientRect();
+  const x = (e.clientX || e.touches?.[0]?.clientX || rect.left + rect.width / 2);
+  const y = (e.clientY || e.touches?.[0]?.clientY || rect.top + rect.height / 2);
+  
+  // Floating coin text
   const coin = document.createElement('div');
   coin.className = 'coin-float';
   coin.textContent = `+${userData.tapPower}`;
-  
-  const rect = e.target.getBoundingClientRect();
-  const x = (e.clientX || e.touches?.[0]?.clientX || rect.left + rect.width / 2) - 20;
-  const y = (e.clientY || e.touches?.[0]?.clientY || rect.top + rect.height / 2) - 20;
-  
-  coin.style.left = `${x}px`;
-  coin.style.top = `${y}px`;
-  
+  coin.style.left = `${x - 20}px`;
+  coin.style.top = `${y - 20}px`;
   document.body.appendChild(coin);
+  setTimeout(() => coin.remove(), 1200);
   
-  setTimeout(() => coin.remove(), 1000);
+  // Ripple effect
+  const ripple = document.createElement('div');
+  ripple.className = 'tap-ripple';
+  ripple.style.left = `${x - 100}px`;
+  ripple.style.top = `${y - 100}px`;
+  document.body.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+  
+  // Particle burst (6 particles)
+  for (let i = 0; i < 6; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    
+    const angle = (Math.PI * 2 * i) / 6;
+    const distance = 50 + Math.random() * 30;
+    const tx = Math.cos(angle) * distance;
+    const ty = Math.sin(angle) * distance;
+    
+    particle.style.left = `${x}px`;
+    particle.style.top = `${y}px`;
+    particle.style.setProperty('--tx', `${tx}px`);
+    particle.style.setProperty('--ty', `${ty}px`);
+    particle.style.animation = `particleFloat 0.8s ease-out forwards`;
+    particle.style.animationDelay = `${i * 0.05}s`;
+    
+    document.body.appendChild(particle);
+    setTimeout(() => particle.remove(), 1000);
+  }
 }
 
 // Energy Regeneration - Slower for better engagement
@@ -877,6 +904,42 @@ function copyReferralLink() {
   }
 }
 
+// Load Profile Data
+function loadProfileData() {
+  try {
+    // Update profile with current user data
+    document.getElementById('profileUsername').textContent = userData.username || 'Anonymous';
+    document.getElementById('profileUserId').textContent = `ID: ${userData.userId}`;
+    document.getElementById('profileTotalEarned').textContent = formatNumber(userData.totalEarned || 0);
+    document.getElementById('profileTotalTaps').textContent = formatNumber(userData.totalTaps || 0);
+    document.getElementById('profileTasksCompleted').textContent = userData.tasksCompleted || 0;
+    document.getElementById('profileReferralCount').textContent = userData.referralCount || 0;
+    
+    // Power stats
+    document.getElementById('profileTapPower').textContent = userData.tapPower || 1;
+    document.getElementById('profileMaxEnergy').textContent = userData.maxEnergy || 500;
+    document.getElementById('profileEnergyRegen').textContent = `${(userData.energyRegenRate || 0.5).toFixed(1)}/s`;
+    document.getElementById('profileCritChance').textContent = `${((userData.criticalChance || 0.05) * 100).toFixed(0)}%`;
+    
+    // Account info
+    document.getElementById('profileDailyStreak').textContent = `${userData.dailyStreak || 0} days`;
+    
+    // Member since (from createdAt if available)
+    const memberSince = new Date().toLocaleDateString();
+    document.getElementById('profileMemberSince').textContent = memberSince;
+    
+    // Play time
+    const playTimeMinutes = Math.floor((userData.totalPlayTime || 0) / 60);
+    document.getElementById('profilePlayTime').textContent = playTimeMinutes > 60 
+      ? `${Math.floor(playTimeMinutes / 60)}h ${playTimeMinutes % 60}m`
+      : `${playTimeMinutes} min`;
+    
+    console.log('✅ Profile data loaded');
+  } catch (error) {
+    console.error('Error loading profile:', error);
+  }
+}
+
 // Switch Tab
 function switchTab(tab) {
   // Hide all tabs
@@ -892,6 +955,8 @@ function switchTab(tab) {
     loadLeaderboard('global');
   } else if (tab === 'friends') {
     loadReferralStats();
+  } else if (tab === 'profile') {
+    loadProfileData();
   }
 }
 

@@ -72,29 +72,81 @@
       50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
     }
     
-    /* Floating Coins - Enhanced */
+    /* Floating Coins - Advanced Animation */
     .coin-float {
       position: absolute;
-      animation: floatUp 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      animation: floatUpAdvanced 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
       pointer-events: none;
       font-weight: 900;
-      font-size: 28px;
+      font-size: 32px;
       color: #FFD700;
       text-shadow: 
-        0 0 10px rgba(255, 215, 0, 0.8),
-        0 0 20px rgba(255, 215, 0, 0.6),
-        2px 2px 4px rgba(0,0,0,0.8);
+        0 0 15px rgba(255, 215, 0, 1),
+        0 0 30px rgba(255, 215, 0, 0.8),
+        0 0 45px rgba(255, 165, 0, 0.6),
+        2px 2px 6px rgba(0,0,0,0.9);
       z-index: 1000;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
     }
     
-    @keyframes floatUp {
+    @keyframes floatUpAdvanced {
       0% {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0) scale(0.8) rotate(0deg);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-60px) scale(1.3) rotate(10deg);
       }
       100% {
         opacity: 0;
-        transform: translateY(-120px) scale(1.5);
+        transform: translateY(-140px) scale(1.8) rotate(20deg);
+      }
+    }
+    
+    /* Tap Ripple Effect */
+    .tap-ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
+      animation: ripple 0.6s ease-out forwards;
+      pointer-events: none;
+      z-index: 999;
+    }
+    
+    @keyframes ripple {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+      }
+      100% {
+        width: 200px;
+        height: 200px;
+        opacity: 0;
+      }
+    }
+    
+    /* Particle Effect */
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #FFD700;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 998;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+    
+    @keyframes particleFloat {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0);
       }
     }
     
@@ -447,27 +499,107 @@
       </div>
     </div>
 
+      <!-- Profile Tab -->
+      <div id="profileTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">👤 Profile</h2>
+        
+        <!-- User Info Card -->
+        <div class="upgrade-card rounded-2xl p-6 mb-4">
+          <div class="text-center mb-4">
+            <div class="text-6xl mb-3">👤</div>
+            <div class="text-2xl font-bold" id="profileUsername">Loading...</div>
+            <div class="text-sm opacity-75" id="profileUserId">ID: ...</div>
+          </div>
+          
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="stat-item">
+              <div class="text-xs opacity-75 mb-1">💰 Total Earned</div>
+              <div class="text-xl font-bold glow" id="profileTotalEarned">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="text-xs opacity-75 mb-1">👆 Total Taps</div>
+              <div class="text-xl font-bold" id="profileTotalTaps">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="text-xs opacity-75 mb-1">✅ Tasks Done</div>
+              <div class="text-xl font-bold" id="profileTasksCompleted">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="text-xs opacity-75 mb-1">👥 Referrals</div>
+              <div class="text-xl font-bold" id="profileReferralCount">0</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Power Stats -->
+        <div class="upgrade-card rounded-2xl p-4 mb-4">
+          <div class="text-lg font-bold mb-3">⚡ Power Stats</div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="opacity-75">💪 Tap Power</span>
+              <span class="font-bold" id="profileTapPower">1</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="opacity-75">🔋 Max Energy</span>
+              <span class="font-bold" id="profileMaxEnergy">500</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="opacity-75">⚡ Energy Regen</span>
+              <span class="font-bold" id="profileEnergyRegen">0.5/s</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="opacity-75">🎯 Critical Chance</span>
+              <span class="font-bold" id="profileCritChance">5%</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Account Info -->
+        <div class="upgrade-card rounded-2xl p-4">
+          <div class="text-lg font-bold mb-3">📊 Account Info</div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="opacity-75">🔥 Daily Streak</span>
+              <span class="font-bold" id="profileDailyStreak">0 days</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">📅 Member Since</span>
+              <span class="font-bold" id="profileMemberSince">...</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">⏱️ Play Time</span>
+              <span class="font-bold" id="profilePlayTime">0 min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <!-- Bottom Navigation -->
     <div class="header flex border-t border-white border-opacity-10">
-      <button onclick="switchTab('game')" class="tab-btn tab-active flex-1 py-4 text-center">
-        <div class="text-3xl mb-1">🎮</div>
+      <button onclick="switchTab('game')" class="tab-btn tab-active flex-1 py-3 text-center">
+        <div class="text-2xl mb-1">🎮</div>
         <div class="text-xs font-semibold">Game</div>
       </button>
-      <button onclick="switchTab('upgrades')" class="tab-btn flex-1 py-4 text-center">
-        <div class="text-3xl mb-1">⚡</div>
+      <button onclick="switchTab('upgrades')" class="tab-btn flex-1 py-3 text-center">
+        <div class="text-2xl mb-1">⚡</div>
         <div class="text-xs font-semibold">Upgrades</div>
       </button>
-      <button onclick="switchTab('tasks')" class="tab-btn flex-1 py-4 text-center">
-        <div class="text-3xl mb-1">🎯</div>
+      <button onclick="switchTab('tasks')" class="tab-btn flex-1 py-3 text-center">
+        <div class="text-2xl mb-1">🎯</div>
         <div class="text-xs font-semibold">Tasks</div>
       </button>
-      <button onclick="switchTab('leaderboard')" class="tab-btn flex-1 py-4 text-center">
-        <div class="text-3xl mb-1">🏆</div>
+      <button onclick="switchTab('leaderboard')" class="tab-btn flex-1 py-3 text-center">
+        <div class="text-2xl mb-1">🏆</div>
         <div class="text-xs font-semibold">Top</div>
       </button>
-      <button onclick="switchTab('friends')" class="tab-btn flex-1 py-4 text-center">
-        <div class="text-3xl mb-1">👥</div>
+      <button onclick="switchTab('friends')" class="tab-btn flex-1 py-3 text-center">
+        <div class="text-2xl mb-1">👥</div>
         <div class="text-xs font-semibold">Friends</div>
+      </button>
+      <button onclick="switchTab('profile')" class="tab-btn flex-1 py-3 text-center">
+        <div class="text-2xl mb-1">👤</div>
+        <div class="text-xs font-semibold">Profile</div>
       </button>
     </div>
   </div>
