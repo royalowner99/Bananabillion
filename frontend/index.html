@@ -725,9 +725,9 @@
       <div id="leaderboardTab" class="tab-content hidden p-4">
         <h2 class="text-3xl font-bold mb-6 glow">ðŸ† Leaderboard</h2>
         <div class="flex gap-2 mb-6">
-          <button onclick="loadLeaderboard('daily')" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Daily</button>
-          <button onclick="loadLeaderboard('weekly')" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Weekly</button>
-          <button onclick="loadLeaderboard('global')" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Global</button>
+          <button onclick="loadLeaderboard('daily', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Daily</button>
+          <button onclick="loadLeaderboard('weekly', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Weekly</button>
+          <button onclick="loadLeaderboard('global', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Global</button>
         </div>
         <div id="leaderboardList" class="space-y-3"></div>
       </div>
@@ -946,32 +946,32 @@
 
     <!-- Bottom Navigation - Compact -->
     <div class="header flex border-t border-white border-opacity-10" id="bottomNav">
-      <button onclick="switchTab('game')" class="tab-btn tab-active flex-1 py-2 text-center">
+      <button onclick="switchTab('game', event)" class="tab-btn tab-active flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">ðŸŽ®</div>
         <div class="text-xs font-semibold">Game</div>
       </button>
-      <button onclick="switchTab('upgrades')" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab('upgrades', event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">âš¡</div>
         <div class="text-xs font-semibold">Boost</div>
       </button>
-      <button onclick="switchTab('tasks')" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab('tasks', event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">ðŸŽ¯</div>
         <div class="text-xs font-semibold">Tasks</div>
       </button>
-      <button onclick="switchTab('leaderboard')" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab('leaderboard', event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">ðŸ†</div>
         <div class="text-xs font-semibold">Top</div>
       </button>
-      <button onclick="switchTab('friends')" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab('friends', event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">ðŸ‘¥</div>
         <div class="text-xs font-semibold">Friends</div>
       </button>
       <!-- Admin Tab (Hidden by default, shown only for admins) -->
-      <button onclick="switchTab('admin')" class="tab-btn flex-1 py-2 text-center hidden" id="adminTabBtn">
+      <button onclick="switchTab('admin', event)" class="tab-btn flex-1 py-2 text-center hidden" id="adminTabBtn">
         <div class="text-xl mb-0.5">ðŸ”</div>
         <div class="text-xs font-semibold">Admin</div>
       </button>
-      <button onclick="switchTab('profile')" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab('profile', event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">ðŸ‘¤</div>
         <div class="text-xs font-semibold">Me</div>
       </button>
@@ -996,5 +996,6 @@
   <script src="src/main.js"></script>
 </body>
 </html>
+
 
 

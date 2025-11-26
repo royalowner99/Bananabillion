@@ -1188,14 +1188,32 @@ async function loadProfileData() {
 }
 
 // Switch Tab
-function switchTab(tab) {
+function switchTab(tab, event) {
   // Hide all tabs
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
   
   // Show selected tab
-  document.getElementById(`${tab}Tab`).classList.remove('hidden');
-  event.target.closest('.tab-btn').classList.add('tab-active');
+  const tabElement = document.getElementById(`${tab}Tab`);
+  if (tabElement) {
+    tabElement.classList.remove('hidden');
+  }
+  
+  // Set active button
+  if (event && event.target) {
+    const button = event.target.closest('.tab-btn');
+    if (button) {
+      button.classList.add('tab-active');
+    }
+  } else {
+    // Fallback: find button by tab name
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+      if (btn.getAttribute('onclick')?.includes(`'${tab}'`)) {
+        btn.classList.add('tab-active');
+      }
+    });
+  }
   
   // Load data for tab
   if (tab === 'leaderboard') {
