@@ -283,7 +283,7 @@ function startEnergyRegen() {
   }, 1000); // Changed from 100ms to 1000ms (1 second)
 }
 
-// Load Upgrades
+// Load Upgrades - Organized by category
 async function loadUpgrades() {
   try {
     const data = await apiCall('/user/upgrades');
@@ -291,18 +291,59 @@ async function loadUpgrades() {
     const upgradesList = document.getElementById('upgradesList');
     upgradesList.innerHTML = '';
     
-    data.upgrades.forEach(upgrade => {
+    // Group upgrades by priority/importance
+    const priorityOrder = ['tapPower', 'maxEnergy', 'energyRegen', 'criticalChance', 'comboMultiplier', 'autoMiner', 'streakBoost', 'offlineEarnings'];
+    const sortedUpgrades = data.upgrades.sort((a, b) => {
+      return priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id);
+    });
+    
+    sortedUpgrades.forEach(upgrade => {
       const card = document.createElement('div');
-      card.className = 'upgrade-card rounded-lg p-4';
+      card.className = 'upgrade-card rounded-2xl p-4';
       
       const canAfford = upgrade.canAfford && !upgrade.isMaxed;
+      
+      // Calculate next level benefit
+      let benefit = '';
+      const nextLevel = upgrade.currentLevel + 1;
+      
+      switch(upgrade.id) {
+        case 'tapPower':
+          benefit = `+1 coin per tap (${upgrade.currentLevel + 1} → ${nextLevel + 1})`;
+          break;
+        case 'maxEnergy':
+          benefit = `+50 max energy (${500 + upgrade.currentLevel * 50} → ${500 + nextLevel * 50})`;
+          break;
+        case 'energyRegen':
+          benefit = `+0.3/sec regen (${(0.5 + upgrade.currentLevel * 0.3).toFixed(1)} → ${(0.5 + nextLevel * 0.3).toFixed(1)})`;
+          break;
+        case 'criticalChance':
+          benefit = `+1% crit chance (${(5 + upgrade.currentLevel)}% → ${(5 + nextLevel)}%)`;
+          break;
+        case 'comboMultiplier':
+          benefit = `+0.1x combo (${(1 + upgrade.currentLevel * 0.1).toFixed(1)}x → ${(1 + nextLevel * 0.1).toFixed(1)}x)`;
+          break;
+        case 'autoMiner':
+          benefit = `+10 coins/min (${upgrade.currentLevel * 10} → ${nextLevel * 10})`;
+          break;
+        case 'streakBoost':
+          benefit = `+5% daily reward (${upgrade.currentLevel * 5}% → ${nextLevel * 5}%)`;
+          break;
+        case 'offlineEarnings':
+          benefit = `+10% offline (${upgrade.currentLevel * 10}% → ${nextLevel * 10}%)`;
+          break;
+      }
       
       card.innerHTML = `
         <div class="flex justify-between items-center gap-4">
           <div class="flex-1">
             <div class="font-bold text-lg mb-1">${upgrade.name}</div>
-            <div class="text-sm opacity-75 mb-2">${upgrade.description}</div>
-            <div class="text-xs opacity-60">Level: ${upgrade.currentLevel}/${upgrade.maxLevel}</div>
+            <div class="text-sm opacity-75 mb-1">${upgrade.description}</div>
+            ${!upgrade.isMaxed ? `<div class="text-xs text-yellow-400 mb-2">📈 ${benefit}</div>` : ''}
+            <div class="flex items-center gap-3">
+              <div class="text-xs opacity-60">Level ${upgrade.currentLevel}/${upgrade.maxLevel}</div>
+              ${upgrade.currentLevel > 0 ? `<div class="text-xs text-green-400">✓ Active</div>` : ''}
+            </div>
           </div>
           <button 
             onclick="buyUpgrade('${upgrade.id}')"
