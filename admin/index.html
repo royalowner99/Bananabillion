@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BananaBillion - Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">🍌 BananaBillion Admin Panel</h1>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="text-sm opacity-75">Total Users</div>
+        <div class="text-3xl font-bold" id="totalUsers">0</div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="text-sm opacity-75">Active Users (24h)</div>
+        <div class="text-3xl font-bold" id="activeUsers">0</div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="text-sm opacity-75">Pending Withdrawals</div>
+        <div class="text-3xl font-bold" id="pendingWithdrawals">0</div>
+      </div>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button onclick="switchTab('users')" class="tab-btn px-4 py-2 rounded bg-blue-600">Users</button>
+      <button onclick="switchTab('withdrawals')" class="tab-btn px-4 py-2 rounded bg-gray-700">Withdrawals</button>
+      <button onclick="switchTab('tasks')" class="tab-btn px-4 py-2 rounded bg-gray-700">Tasks</button>
+      <button onclick="switchTab('broadcast')" class="tab-btn px-4 py-2 rounded bg-gray-700">Broadcast</button>
+    </div>
+    
+    <!-- Users Tab -->
+    <div id="usersTab" class="tab-content">
+      <div class="mb-4">
+        <input type="text" id="userSearch" placeholder="Search users..." class="w-full p-2 rounded bg-gray-800">
+      </div>
+      <div id="usersList" class="space-y-2"></div>
+    </div>
+    
+    <!-- Withdrawals Tab -->
+    <div id="withdrawalsTab" class="tab-content hidden">
+      <div id="withdrawalsList" class="space-y-2"></div>
+    </div>
+    
+    <!-- Tasks Tab -->
+    <div id="tasksTab" class="tab-content hidden">
+      <button onclick="showCreateTask()" class="mb-4 px-4 py-2 rounded bg-green-600">Create Task</button>
+      <div id="tasksList" class="space-y-2"></div>
+    </div>
+    
+    <!-- Broadcast Tab -->
+    <div id="broadcastTab" class="tab-content hidden">
+      <textarea id="broadcastMessage" rows="5" class="w-full p-2 rounded bg-gray-800 mb-4" placeholder="Enter broadcast message..."></textarea>
+      <button onclick="sendBroadcast()" class="px-4 py-2 rounded bg-blue-600">Send Broadcast</button>
+    </div>
+  </div>
+  
+  <script>
+    const API_URL = '/api';
+    let authToken = prompt('Enter admin token:');
+    
+    async function apiCall(endpoint, method = 'GET', body = null) {
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        }
+      };
+      
+      if (body) options.body = JSON.stringify(body);
+      
+      const response = await fetch(`${API_URL}${endpoint}`, options);
+      return await response.json();
+    }
+    
+    async function loadStats() {
+      const data = await apiCall('/admin/stats');
+      document.getElementById('totalUsers').textContent = data.totalUsers;
+      document.getElementById('activeUsers').textContent = data.activeUsers;
+      document.getElementById('pendingWithdrawals').textContent = data.pendingWithdrawals;
+    }
+    
+    async function loadUsers() {
+      const search = document.getElementById('userSearch').value;
+      const data = await apiCall(`/admin/users?search=${search}`);
+      
+      const usersList = document.getElementById('usersList');
+      usersList.innerHTML = '';
+      
+      data.users.forEach(user => {
+        const card = document.createElement('div');
+        card.className = 'bg-gray-800 rounded-lg p-4';
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-bold">${user.username || 'Anonymous'} (${user.userId})</div>
+              <div class="text-sm opacity-75">Balance: ${user.balance} | Earned: ${user.totalEarned}</div>
+              <div class="text-sm opacity-75">Referrals: ${user.referralCount} | Taps: ${user.totalTaps}</div>
+            </div>
+            <div class="flex gap-2">
+              ${user.isBanned ? 
+                `<button onclick="unbanUser('${user.userId}')" class="px-3 py-1 rounded bg-green-600">Unban</button>` :
+                `<button onclick="banUser('${user.userId}')" class="px-3 py-1 rounded bg-red-600">Ban</button>`
+              }
+            </div>
+          </div>
+        `;
+        usersList.appendChild(card);
+      });
+    }
+    
+    async function banUser(userId) {
+      const reason = prompt('Ban reason:');
+      if (!reason) return;
+      
+      await apiCall('/admin/ban', 'POST', { userId, reason });
+      alert('User banned');
+      loadUsers();
+    }
+    
+    async function unbanUser(userId) {
+      await apiCall('/admin/unban', 'POST', { userId });
+      alert('User unbanned');
+      loadUsers();
+    }
+    
+    async function loadWithdrawals() {
+      const data = await apiCall('/withdraw/pending');
+      
+      const withdrawalsList = document.getElementById('withdrawalsList');
+      withdrawalsList.innerHTML = '';
+      
+      data.withdrawals.forEach(w => {
+        const card = document.createElement('div');
+        card.className = 'bg-gray-800 rounded-lg p-4';
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-bold">User: ${w.userId}</div>
+              <div class="text-sm opacity-75">UPI: ${w.upiId}</div>
+              <div class="text-sm opacity-75">Amount: ${w.amount} coins</div>
+              <div class="text-sm opacity-75">Date: ${new Date(w.createdAt).toLocaleString()}</div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="updateWithdrawal('${w._id}', 'approved')" class="px-3 py-1 rounded bg-green-600">Approve</button>
+              <button onclick="updateWithdrawal('${w._id}', 'rejected')" class="px-3 py-1 rounded bg-red-600">Reject</button>
+            </div>
+          </div>
+        `;
+        withdrawalsList.appendChild(card);
+      });
+    }
+    
+    async function updateWithdrawal(withdrawId, status) {
+      const adminNote = prompt('Admin note (optional):');
+      await apiCall('/withdraw/update', 'POST', { withdrawId, status, adminNote });
+      alert('Withdrawal updated');
+      loadWithdrawals();
+      loadStats();
+    }
+    
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-blue-600'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.add('bg-gray-700'));
+      
+      document.getElementById(`${tab}Tab`).classList.remove('hidden');
+      event.target.classList.remove('bg-gray-700');
+      event.target.classList.add('bg-blue-600');
+      
+      if (tab === 'users') loadUsers();
+      if (tab === 'withdrawals') loadWithdrawals();
+    }
+    
+    // Initialize
+    loadStats();
+    loadUsers();
+    
+    document.getElementById('userSearch').addEventListener('input', loadUsers);
+  </script>
+</body>
+</html>

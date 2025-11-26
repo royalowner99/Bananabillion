@@ -1,0 +1,59 @@
+services:
+  # Backend API
+  - type: web
+    name: bananabillion-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_TELEGRAM_IDS
+        sync: false
+      - key: BASE_TAP_POWER
+        value: 1
+      - key: BASE_MAX_ENERGY
+        value: 1000
+      - key: BASE_ENERGY_REGEN
+        value: 1
+      - key: CRITICAL_BASE_CHANCE
+        value: 0.05
+      - key: MAX_TAPS_PER_SECOND
+        value: 15
+      - key: COMBO_TIMEOUT_MS
+        value: 500
+    healthCheckPath: /api/user/profile
+    
+  # Telegram Bot
+  - type: worker
+    name: bananabillion-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run bot
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
+      - key: ADMIN_TELEGRAM_IDS
+        sync: false
