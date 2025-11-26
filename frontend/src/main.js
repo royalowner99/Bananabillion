@@ -718,13 +718,106 @@ async function loadLeaderboard(type) {
   }
 }
 
-// Share Referral
+// Load Referral Stats
+async function loadReferralStats() {
+  try {
+    console.log('📊 Loading referral stats...');
+    const data = await apiCall('/referrals/stats');
+    
+    console.log('✅ Referral stats loaded:', data);
+    
+    // Update stats display
+    document.getElementById('referralCount').textContent = data.referralCount || 0;
+    document.getElementById('referralEarnings').textContent = formatNumber(data.referralEarnings || 0);
+    
+    // Display referral list
+    const referralsList = document.getElementById('referralsList');
+    
+    if (referralsList) {
+      referralsList.innerHTML = '';
+      
+      if (data.referrals && data.referrals.length > 0) {
+        // Add header
+        const header = document.createElement('div');
+        header.className = 'text-lg font-bold mb-3 mt-4';
+        header.textContent = `👥 Your Friends (${data.activeReferrals}/${data.totalReferrals})`;
+        referralsList.appendChild(header);
+        
+        // Add each referral
+        data.referrals.forEach((ref, index) => {
+          const card = document.createElement('div');
+          card.className = 'upgrade-card rounded-xl p-3 flex justify-between items-center';
+          
+          const statusIcon = ref.isActive ? '✅' : '⏳';
+          const statusText = ref.isActive ? 'Active' : 'Pending';
+          const statusColor = ref.isActive ? 'text-green-400' : 'text-yellow-400';
+          
+          card.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="text-2xl">${index + 1}.</div>
+              <div>
+                <div class="font-bold">${ref.username}</div>
+                <div class="text-xs opacity-75">Joined ${new Date(ref.joinedAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="${statusColor} text-sm font-bold">${statusIcon} ${statusText}</div>
+              <div class="text-xs opacity-75">+${formatNumber(ref.earned)} earned</div>
+            </div>
+          `;
+          
+          referralsList.appendChild(card);
+        });
+      } else {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'text-center py-8 opacity-75';
+        emptyState.innerHTML = `
+          <div class="text-4xl mb-2">👥</div>
+          <div class="text-sm">No referrals yet</div>
+          <div class="text-xs mt-1">Invite friends to earn 20% of their earnings!</div>
+        `;
+        referralsList.appendChild(emptyState);
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ Load referral stats error:', error);
+  }
+}
+
+// Share Referral - Improved
 function shareReferral() {
   const botUsername = 'banabillionbot';
   const referralLink = `https://t.me/${botUsername}?start=${userData.userId}`;
-  const text = `🍌 Join me on BananaBillion and earn coins by tapping!\n\n${referralLink}`;
+  const text = `🍌 Join me on BananaBillion!\n\n💰 Tap to earn coins\n🎮 Play mini games\n🎁 Complete tasks\n\n🎁 Use my link and we both get bonuses!\n\n${referralLink}`;
   
   tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`);
+  
+  // Haptic feedback
+  tg.HapticFeedback.notificationOccurred('success');
+  
+  console.log('📤 Shared referral link');
+}
+
+// Copy Referral Link
+function copyReferralLink() {
+  const botUsername = 'banabillionbot';
+  const referralLink = `https://t.me/${botUsername}?start=${userData.userId}`;
+  
+  // Try to copy to clipboard
+  try {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(referralLink);
+      showNotification('✅ Link copied to clipboard!');
+    } else {
+      // Fallback: show link
+      showNotification(`📋 ${referralLink}`);
+    }
+    tg.HapticFeedback.notificationOccurred('success');
+  } catch (error) {
+    console.error('Copy error:', error);
+    showNotification(`📋 ${referralLink}`);
+  }
 }
 
 // Switch Tab
@@ -740,6 +833,8 @@ function switchTab(tab) {
   // Load data for tab
   if (tab === 'leaderboard') {
     loadLeaderboard('global');
+  } else if (tab === 'friends') {
+    loadReferralStats();
   }
 }
 

@@ -422,9 +422,10 @@
           <div class="text-center">
             <div class="text-6xl mb-4">🎁</div>
             <div class="text-xl font-bold mb-3">Earn 20% of friend's earnings!</div>
+            <div class="text-sm opacity-75 mb-4">Invite friends and get 20% of everything they earn - forever!</div>
             <div class="grid grid-cols-2 gap-4 mt-4">
               <div class="stat-item">
-                <div class="text-xs opacity-75 mb-1">👥 Referrals</div>
+                <div class="text-xs opacity-75 mb-1">👥 Friends</div>
                 <div class="text-2xl font-bold glow" id="referralCount">0</div>
               </div>
               <div class="stat-item">
@@ -434,10 +435,15 @@
             </div>
           </div>
         </div>
-        <button onclick="shareReferral()" class="btn-primary w-full py-4 text-lg">
-          📤 Share Referral Link
-        </button>
-        <div id="referralsList" class="mt-6 space-y-3"></div>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <button onclick="shareReferral()" class="btn-primary py-4 text-base rounded-xl">
+            📤 Share Link
+          </button>
+          <button onclick="copyReferralLink()" class="btn-primary py-4 text-base rounded-xl">
+            📋 Copy Link
+          </button>
+        </div>
+        <div id="referralsList" class="space-y-3"></div>
       </div>
     </div>
 

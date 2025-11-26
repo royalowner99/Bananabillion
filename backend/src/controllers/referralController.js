@@ -12,10 +12,24 @@ exports.getReferralStats = async (req, res) => {
     
     const user = await User.findOne({ userId: req.userId });
     
+    // Calculate potential earnings (20% of friends' total)
+    const referrals = await Referral.find({ inviterId: req.userId, isActive: true });
+    let potentialEarnings = 0;
+    
+    for (const ref of referrals) {
+      const friend = await User.findOne({ userId: ref.invitedId });
+      if (friend) {
+        potentialEarnings += friend.totalEarned * 0.2;
+      }
+    }
+    
     res.json({
       ...stats,
       referralEarnings: user.referralEarnings,
-      referralLink: `https://t.me/${process.env.BOT_USERNAME}?start=${req.userId}`
+      referralCount: user.referralCount,
+      potentialEarnings: Math.floor(potentialEarnings),
+      referralLink: `https://t.me/${process.env.BOT_USERNAME}?start=${req.userId}`,
+      rewardPercentage: 20
     });
     
   } catch (error) {
