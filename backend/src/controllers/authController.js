@@ -32,6 +32,9 @@ exports.telegramAuth = async (req, res) => {
     
     console.log('✅ User data extracted:', userData.userId);
     
+    // Initialize offline earnings
+    let offlineEarnings = 0;
+    
     // Find or create user
     let user = await User.findOne({ userId: userData.userId });
     
@@ -72,7 +75,7 @@ exports.telegramAuth = async (req, res) => {
       regenerateEnergy(user);
       
       // Calculate offline earnings
-      const offlineEarnings = calculateOfflineEarnings(user);
+      offlineEarnings = calculateOfflineEarnings(user);
       if (offlineEarnings > 0) {
         user.balance += offlineEarnings;
         user.totalEarned += offlineEarnings;
