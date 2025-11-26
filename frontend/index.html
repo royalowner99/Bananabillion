@@ -385,11 +385,13 @@
       }
     }
     
-    /* Tab Navigation - Enhanced */
+    /* Tab Navigation - Compact & Aligned */
     .tab-btn {
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
+      min-width: 0;
+      padding: 0.5rem 0.25rem !important;
     }
     
     .tab-btn::before {
@@ -398,8 +400,8 @@
       bottom: 0;
       left: 50%;
       transform: translateX(-50%) scaleX(0);
-      width: 80%;
-      height: 3px;
+      width: 60%;
+      height: 2px;
       background: linear-gradient(90deg, #FFD700, #FFA500);
       transition: transform 0.3s ease;
       border-radius: 2px;
@@ -410,7 +412,16 @@
     }
     
     .tab-active {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Bottom Navigation Container */
+    #bottomNav {
+      position: sticky;
+      bottom: 0;
+      background: rgba(20, 20, 40, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
     }
     
     /* Cards - Enhanced */
@@ -886,36 +897,36 @@
         </div>
       </div>
 
-    <!-- Bottom Navigation -->
-    <div class="header flex border-t border-white border-opacity-10" id="bottomNav"></div>
-      <button onclick="switchTab('game')" class="tab-btn tab-active flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">🎮</div>
+    <!-- Bottom Navigation - Compact -->
+    <div class="header flex border-t border-white border-opacity-10" id="bottomNav">
+      <button onclick="switchTab('game')" class="tab-btn tab-active flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">🎮</div>
         <div class="text-xs font-semibold">Game</div>
       </button>
-      <button onclick="switchTab('upgrades')" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">⚡</div>
-        <div class="text-xs font-semibold">Upgrades</div>
+      <button onclick="switchTab('upgrades')" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">⚡</div>
+        <div class="text-xs font-semibold">Boost</div>
       </button>
-      <button onclick="switchTab('tasks')" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">🎯</div>
+      <button onclick="switchTab('tasks')" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">🎯</div>
         <div class="text-xs font-semibold">Tasks</div>
       </button>
-      <button onclick="switchTab('leaderboard')" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">🏆</div>
+      <button onclick="switchTab('leaderboard')" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">🏆</div>
         <div class="text-xs font-semibold">Top</div>
       </button>
-      <button onclick="switchTab('friends')" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">👥</div>
+      <button onclick="switchTab('friends')" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">👥</div>
         <div class="text-xs font-semibold">Friends</div>
       </button>
       <!-- Admin Tab (Hidden by default, shown only for admins) -->
-      <button onclick="switchTab('admin')" class="tab-btn flex-1 py-3 text-center hidden" id="adminTabBtn">
-        <div class="text-2xl mb-1">🔐</div>
+      <button onclick="switchTab('admin')" class="tab-btn flex-1 py-2 text-center hidden" id="adminTabBtn">
+        <div class="text-xl mb-0.5">🔐</div>
         <div class="text-xs font-semibold">Admin</div>
       </button>
-      <button onclick="switchTab('profile')" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">👤</div>
-        <div class="text-xs font-semibold">Profile</div>
+      <button onclick="switchTab('profile')" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">👤</div>
+        <div class="text-xs font-semibold">Me</div>
       </button>
     </div>
   </div>
