@@ -98,7 +98,7 @@ async function init() {
   }
 }
 
-// API Helper
+// API Helper - With better error handling
 async function apiCall(endpoint, method = 'GET', body = null) {
   const options = {
     method,
@@ -112,14 +112,29 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     options.body = JSON.stringify(body);
   }
   
-  const response = await fetch(`${API_URL}${endpoint}`, options);
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, options);
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Server returned non-JSON response');
+    }
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || data.message || `Request failed with status ${response.status}`);
+    }
+    
+    return data;
+  } catch (error) {
+    // Network error or parsing error
+    if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
+      throw new Error('Network error - please check your connection');
+    }
+    throw error;
   }
-  
-  return data;
 }
 
 // Load Profile
@@ -240,11 +255,19 @@ async function sendTaps() {
     
   } catch (error) {
     console.error('❌ Send taps error:', error);
-    // Restore energy on error
-    userData.energy += taps.length;
-    userData.balance -= taps.length * (userData.tapPower || 1); // Revert optimistic update
+    
+    // Put taps back in queue to retry
+    tapQueue = [...taps, ...tapQueue];
+    
+    // Restore energy (since taps weren't processed)
+    userData.energy = Math.min(userData.energy + taps.length, userData.maxEnergy);
+    
     updateUI();
-    showNotification('Failed to sync taps, please try again');
+    
+    // Only show error if it's a real network issue
+    if (error.message && !error.message.includes('fetch')) {
+      console.log('⚠️ Tap sync failed, will retry automatically');
+    }
   }
 }
 
@@ -680,29 +703,46 @@ init();
 
 // Periodic sync to keep balance updated
 let syncInterval = null;
+let syncFailCount = 0;
 
 function startPeriodicSync() {
   if (syncInterval) clearInterval(syncInterval);
   
   syncInterval = setInterval(async () => {
-    // Send any pending taps
+    // Send any pending taps first
     if (tapQueue.length > 0) {
-      await sendTaps();
+      try {
+        await sendTaps();
+        syncFailCount = 0; // Reset fail count on success
+      } catch (error) {
+        syncFailCount++;
+        console.log(`⚠️ Tap sync failed (${syncFailCount} times)`);
+        
+        // If failed too many times, show warning
+        if (syncFailCount >= 3) {
+          console.error('❌ Multiple sync failures, check connection');
+          syncFailCount = 0; // Reset counter
+        }
+      }
     }
     
     // Sync profile every 10 seconds to ensure balance is accurate
     try {
       const data = await apiCall('/user/profile');
       
-      // Only update if there's a significant difference (to avoid flickering)
+      // Update balance if different
       if (Math.abs(data.balance - userData.balance) > 10) {
         console.log(`🔄 Synced balance: ${userData.balance} → ${data.balance}`);
         userData.balance = data.balance;
         userData.totalEarned = data.totalEarned;
+        userData.energy = data.energy;
         updateUI();
       }
+      
+      syncFailCount = 0; // Reset on successful sync
     } catch (error) {
-      console.error('Sync error:', error);
+      console.error('Profile sync error:', error);
+      // Don't show error to user, will retry automatically
     }
   }, 10000); // Every 10 seconds
 }
