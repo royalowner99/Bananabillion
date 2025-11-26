@@ -72,6 +72,9 @@ async function init() {
     
     console.log('✅ Authentication successful');
     
+    // Check admin access
+    checkAdminAccess();
+    
     // Update UI immediately with auth data
     updateUI();
     
@@ -1201,6 +1204,13 @@ function switchTab(tab) {
     loadReferralStats();
   } else if (tab === 'profile') {
     loadProfileData();
+  } else if (tab === 'admin') {
+    if (isAdmin()) {
+      loadAdminStats();
+    } else {
+      showNotification('❌ Admin access required');
+      switchTab('game');
+    }
   }
 }
 
@@ -1262,6 +1272,251 @@ function showError(message) {
     tg.showAlert('❌ ' + message);
   } catch (e) {
     console.error('Could not show Telegram alert:', e);
+  }
+}
+
+// ============================================
+// ADMIN FUNCTIONS - In-App Admin Panel
+// ============================================
+
+// Admin user IDs (from environment)
+const ADMIN_IDS = ['5866442043']; // Your admin Telegram ID
+
+// Check if current user is admin
+function isAdmin() {
+  return userData && ADMIN_IDS.includes(userData.userId.toString());
+}
+
+// Show admin tab if user is admin
+function checkAdminAccess() {
+  if (isAdmin()) {
+    document.getElementById('adminTabBtn').classList.remove('hidden');
+    console.log('🔐 Admin access granted');
+  }
+}
+
+// Load admin statistics
+async function loadAdminStats() {
+  try {
+    if (!isAdmin()) {
+      showNotification('❌ Admin access required');
+      return;
+    }
+    
+    console.log('📊 Loading admin stats...');
+    
+    const data = await apiCall('/admin/stats');
+    
+    document.getElementById('adminTotalUsers').textContent = formatNumber(data.totalUsers || 0);
+    document.getElementById('adminActiveUsers').textContent = formatNumber(data.activeUsers || 0);
+    document.getElementById('adminTotalCoins').textContent = formatNumber(data.totalCoins || 0);
+    document.getElementById('adminTotalTaps').textContent = formatNumber(data.totalTaps || 0);
+    
+    showNotification('✅ Stats refreshed');
+    
+  } catch (error) {
+    console.error('Admin stats error:', error);
+    showNotification('❌ Failed to load stats');
+  }
+}
+
+// Store found user for actions
+let foundUser = null;
+
+// Find user
+async function adminFindUser() {
+  try {
+    if (!isAdmin()) {
+      showNotification('❌ Admin access required');
+      return;
+    }
+    
+    const query = document.getElementById('adminSearchUser').value.trim();
+    
+    if (!query) {
+      showNotification('❌ Enter User ID or Username');
+      return;
+    }
+    
+    console.log(`🔍 Searching for user: ${query}`);
+    
+    const data = await apiCall(`/admin/user/${encodeURIComponent(query)}`);
+    
+    foundUser = data.user;
+    
+    // Display user info
+    const userInfo = document.getElementById('adminUserInfo');
+    const userDetails = document.getElementById('adminUserDetails');
+    
+    userDetails.innerHTML = `
+      <div class="font-bold text-lg mb-2">@${foundUser.username || 'Anonymous'}</div>
+      <div><span class="opacity-75">ID:</span> ${foundUser.userId}</div>
+      <div><span class="opacity-75">Balance:</span> ${formatNumber(foundUser.balance)}</div>
+      <div><span class="opacity-75">Total Earned:</span> ${formatNumber(foundUser.totalEarned)}</div>
+      <div><span class="opacity-75">Total Taps:</span> ${formatNumber(foundUser.totalTaps)}</div>
+      <div><span class="opacity-75">Referrals:</span> ${foundUser.referralCount}</div>
+      <div><span class="opacity-75">Status:</span> ${foundUser.isBanned ? '🚫 Banned' : '✅ Active'}</div>
+    `;
+    
+    userInfo.classList.remove('hidden');
+    
+    showNotification('✅ User found');
+    
+  } catch (error) {
+    console.error('Find user error:', error);
+    showNotification('❌ User not found');
+  }
+}
+
+// Ban user
+async function adminBanUser() {
+  try {
+    if (!isAdmin() || !foundUser) return;
+    
+    const confirmed = confirm(`Ban user @${foundUser.username || foundUser.userId}?`);
+    if (!confirmed) return;
+    
+    await apiCall('/admin/ban', 'POST', { userId: foundUser.userId });
+    
+    showNotification('✅ User banned');
+    adminFindUser(); // Refresh user info
+    
+  } catch (error) {
+    console.error('Ban user error:', error);
+    showNotification('❌ Failed to ban user');
+  }
+}
+
+// Unban user
+async function adminUnbanUser() {
+  try {
+    if (!isAdmin() || !foundUser) return;
+    
+    await apiCall('/admin/unban', 'POST', { userId: foundUser.userId });
+    
+    showNotification('✅ User unbanned');
+    adminFindUser(); // Refresh user info
+    
+  } catch (error) {
+    console.error('Unban user error:', error);
+    showNotification('❌ Failed to unban user');
+  }
+}
+
+// Add coins to user
+async function adminAddCoins() {
+  try {
+    if (!isAdmin() || !foundUser) {
+      showNotification('❌ Find a user first');
+      return;
+    }
+    
+    const amount = parseInt(document.getElementById('adminCoinsAmount').value);
+    
+    if (isNaN(amount) || amount <= 0) {
+      showNotification('❌ Enter valid amount');
+      return;
+    }
+    
+    await apiCall('/admin/add-coins', 'POST', {
+      userId: foundUser.userId,
+      amount
+    });
+    
+    showNotification(`✅ Added ${formatNumber(amount)} coins`);
+    document.getElementById('adminCoinsAmount').value = '';
+    adminFindUser(); // Refresh user info
+    
+  } catch (error) {
+    console.error('Add coins error:', error);
+    showNotification('❌ Failed to add coins');
+  }
+}
+
+// Broadcast message
+async function adminBroadcast() {
+  try {
+    if (!isAdmin()) return;
+    
+    const message = document.getElementById('adminBroadcastMsg').value.trim();
+    
+    if (!message) {
+      showNotification('❌ Enter a message');
+      return;
+    }
+    
+    const confirmed = confirm(`Send message to all users?\n\n"${message}"`);
+    if (!confirmed) return;
+    
+    await apiCall('/admin/broadcast', 'POST', { message });
+    
+    showNotification('✅ Message sent to all users');
+    document.getElementById('adminBroadcastMsg').value = '';
+    
+  } catch (error) {
+    console.error('Broadcast error:', error);
+    showNotification('❌ Failed to send broadcast');
+  }
+}
+
+// Give coins to all users
+async function adminGiveAll() {
+  try {
+    if (!isAdmin()) return;
+    
+    const confirmed = confirm('Give 1000 coins to ALL users?');
+    if (!confirmed) return;
+    
+    await apiCall('/admin/give-all', 'POST', { amount: 1000 });
+    
+    showNotification('✅ Coins sent to all users');
+    
+  } catch (error) {
+    console.error('Give all error:', error);
+    showNotification('❌ Failed to give coins');
+  }
+}
+
+// View top users
+async function adminViewTopUsers() {
+  try {
+    if (!isAdmin()) return;
+    
+    const data = await apiCall('/admin/top-users');
+    
+    let message = '🏆 Top 20 Users:\n\n';
+    data.users.forEach((user, i) => {
+      message += `${i + 1}. @${user.username || user.userId}\n`;
+      message += `   💰 ${formatNumber(user.totalEarned)} | 👆 ${formatNumber(user.totalTaps)}\n\n`;
+    });
+    
+    alert(message);
+    
+  } catch (error) {
+    console.error('Top users error:', error);
+    showNotification('❌ Failed to load top users');
+  }
+}
+
+// View recent users
+async function adminViewRecentUsers() {
+  try {
+    if (!isAdmin()) return;
+    
+    const data = await apiCall('/admin/recent-users');
+    
+    let message = '🆕 Recent 20 Users:\n\n';
+    data.users.forEach((user, i) => {
+      const joinDate = new Date(user.createdAt).toLocaleDateString();
+      message += `${i + 1}. @${user.username || user.userId}\n`;
+      message += `   Joined: ${joinDate} | Balance: ${formatNumber(user.balance)}\n\n`;
+    });
+    
+    alert(message);
+    
+  } catch (error) {
+    console.error('Recent users error:', error);
+    showNotification('❌ Failed to load recent users');
   }
 }
 

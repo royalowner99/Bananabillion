@@ -706,6 +706,110 @@
       </div>
     </div>
 
+      <!-- Admin Tab (Only for Admins) -->
+      <div id="adminTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">� Ardmin Panel</h2>
+        
+        <!-- Game Stats -->
+        <div class="upgrade-card rounded-2xl p-4 mb-4">
+          <div class="text-lg font-bold mb-3">📊 Game Statistics</div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="bg-black bg-opacity-20 rounded-lg p-3">
+              <div class="opacity-75 mb-1">Total Users</div>
+              <div class="text-xl font-bold" id="adminTotalUsers">-</div>
+            </div>
+            <div class="bg-black bg-opacity-20 rounded-lg p-3">
+              <div class="opacity-75 mb-1">Active (24h)</div>
+              <div class="text-xl font-bold" id="adminActiveUsers">-</div>
+            </div>
+            <div class="bg-black bg-opacity-20 rounded-lg p-3">
+              <div class="opacity-75 mb-1">Total Coins</div>
+              <div class="text-xl font-bold" id="adminTotalCoins">-</div>
+            </div>
+            <div class="bg-black bg-opacity-20 rounded-lg p-3">
+              <div class="opacity-75 mb-1">Total Taps</div>
+              <div class="text-xl font-bold" id="adminTotalTaps">-</div>
+            </div>
+          </div>
+          <button onclick="loadAdminStats()" class="btn-primary w-full mt-3 py-2 rounded-xl">
+            🔄 Refresh Stats
+          </button>
+        </div>
+        
+        <!-- User Management -->
+        <div class="upgrade-card rounded-2xl p-4 mb-4">
+          <div class="text-lg font-bold mb-3">👤 User Management</div>
+          
+          <!-- Find User -->
+          <div class="mb-3">
+            <input 
+              type="text" 
+              id="adminSearchUser" 
+              placeholder="Enter User ID or Username"
+              class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white"
+            />
+            <button onclick="adminFindUser()" class="btn-primary w-full mt-2 py-2 rounded-xl">
+              🔍 Find User
+            </button>
+          </div>
+          
+          <!-- User Info Display -->
+          <div id="adminUserInfo" class="hidden bg-black bg-opacity-30 rounded-lg p-3 mb-3">
+            <div class="text-sm space-y-2" id="adminUserDetails"></div>
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <button onclick="adminBanUser()" class="bg-red-500 bg-opacity-80 py-2 rounded-lg text-sm font-bold">
+                🚫 Ban
+              </button>
+              <button onclick="adminUnbanUser()" class="bg-green-500 bg-opacity-80 py-2 rounded-lg text-sm font-bold">
+                ✅ Unban
+              </button>
+            </div>
+          </div>
+          
+          <!-- Add Coins -->
+          <div class="mb-3">
+            <input 
+              type="number" 
+              id="adminCoinsAmount" 
+              placeholder="Coins Amount"
+              class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white"
+            />
+            <button onclick="adminAddCoins()" class="btn-primary w-full mt-2 py-2 rounded-xl">
+              💰 Add Coins to User
+            </button>
+          </div>
+        </div>
+        
+        <!-- Broadcast -->
+        <div class="upgrade-card rounded-2xl p-4 mb-4">
+          <div class="text-lg font-bold mb-3">📢 Broadcast Message</div>
+          <textarea 
+            id="adminBroadcastMsg" 
+            placeholder="Enter message to send to all users..."
+            class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white h-24"
+          ></textarea>
+          <button onclick="adminBroadcast()" class="btn-primary w-full mt-2 py-2 rounded-xl">
+            📤 Send to All Users
+          </button>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="upgrade-card rounded-2xl p-4">
+          <div class="text-lg font-bold mb-3">⚡ Quick Actions</div>
+          <div class="space-y-2">
+            <button onclick="adminGiveAll()" class="btn-primary w-full py-2 rounded-xl">
+              🎁 Give 1000 Coins to All
+            </button>
+            <button onclick="adminViewTopUsers()" class="btn-primary w-full py-2 rounded-xl">
+              🏆 View Top 20 Users
+            </button>
+            <button onclick="adminViewRecentUsers()" class="btn-primary w-full py-2 rounded-xl">
+              🆕 View Recent Users
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Profile Tab -->
       <div id="profileTab" class="tab-content hidden p-4">
         <h2 class="text-3xl font-bold mb-6 glow">👤 Profile</h2>
@@ -734,7 +838,7 @@
             </div>
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
               <div class="text-xs opacity-75 mb-2">👥 Referrals</div>
-              <div class="text-2xl font-bold" id="profileReferralCount">0</div>
+              <div class="text-2xl font-bold" id="profileReferralCount">0</div>div>
             </div>
           </div>
         </div>
@@ -783,7 +887,7 @@
       </div>
 
     <!-- Bottom Navigation -->
-    <div class="header flex border-t border-white border-opacity-10">
+    <div class="header flex border-t border-white border-opacity-10" id="bottomNav"></div>
       <button onclick="switchTab('game')" class="tab-btn tab-active flex-1 py-3 text-center">
         <div class="text-2xl mb-1">🎮</div>
         <div class="text-xs font-semibold">Game</div>
@@ -803,6 +907,11 @@
       <button onclick="switchTab('friends')" class="tab-btn flex-1 py-3 text-center">
         <div class="text-2xl mb-1">👥</div>
         <div class="text-xs font-semibold">Friends</div>
+      </button>
+      <!-- Admin Tab (Hidden by default, shown only for admins) -->
+      <button onclick="switchTab('admin')" class="tab-btn flex-1 py-3 text-center hidden" id="adminTabBtn">
+        <div class="text-2xl mb-1">🔐</div>
+        <div class="text-xs font-semibold">Admin</div>
       </button>
       <button onclick="switchTab('profile')" class="tab-btn flex-1 py-3 text-center">
         <div class="text-2xl mb-1">👤</div>
