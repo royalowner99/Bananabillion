@@ -1441,7 +1441,7 @@ async function adminAddCoins() {
     const amount = parseInt(document.getElementById('adminCoinsAmount').value);
     
     if (isNaN(amount) || amount <= 0) {
-      showNotification('❌ Enter valid amount');
+      showNotification('❌ Enter valid positive amount');
       return;
     }
     
@@ -1459,6 +1459,42 @@ async function adminAddCoins() {
   } catch (error) {
     console.error('Add coins error:', error);
     showNotification('❌ Failed to add coins: ' + error.message);
+  }
+}
+
+// Remove coins from user
+async function adminRemoveCoins() {
+  try {
+    if (!isAdmin() || !foundUser) {
+      showNotification('❌ Find a user first');
+      return;
+    }
+    
+    const amount = parseInt(document.getElementById('adminCoinsAmount').value);
+    
+    if (isNaN(amount) || amount <= 0) {
+      showNotification('❌ Enter valid positive amount');
+      return;
+    }
+    
+    const newBalance = Math.max(0, foundUser.balance - amount);
+    
+    const confirmed = confirm(`Remove ${formatNumber(amount)} coins from @${foundUser.username || foundUser.userId}?\n\nCurrent: ${formatNumber(foundUser.balance)}\nNew: ${formatNumber(newBalance)}`);
+    
+    if (!confirmed) return;
+    
+    await apiCall('/admin/balance', 'POST', {
+      userId: foundUser.userId,
+      amount: newBalance
+    });
+    
+    showNotification(`✅ Removed ${formatNumber(amount)} coins`);
+    document.getElementById('adminCoinsAmount').value = '';
+    adminFindUser(); // Refresh user info
+    
+  } catch (error) {
+    console.error('Remove coins error:', error);
+    showNotification('❌ Failed to remove coins: ' + error.message);
   }
 }
 
