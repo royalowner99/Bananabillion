@@ -18,7 +18,7 @@
     body {
       overflow: hidden;
       background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
     
     /* Main Content Scrolling */
@@ -695,7 +695,7 @@
         
         <div class="grid grid-cols-3 gap-3 mt-6">
           <div class="stat-item text-center">
-            <div class="text-xs opacity-75 mb-1">‘† Taps</div>
+            <div class="text-xs opacity-75 mb-1">‘🏆 Taps</div>
             <div class="font-bold text-lg" id="totalTaps">0</div>
           </div>
           <div class="stat-item text-center">
@@ -717,17 +717,17 @@
 
       <!-- Tasks Tab -->
       <div id="tasksTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">🎁¯ Tasks</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">🎯 Tasks</h2>
         <div id="tasksList" class="space-y-4"></div>
       </div>
 
       <!-- Leaderboard Tab -->
       <div id="leaderboardTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">† Leaderboard</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">🏆 Leaderboard</h2>
         <div class="flex gap-2 mb-6">
-          <button onclick="loadLeaderboard('daily', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Daily</button>
-          <button onclick="loadLeaderboard('weekly', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Weekly</button>
-          <button onclick="loadLeaderboard('global', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Global</button>
+          <button onclick="loadLeaderboard(daily, event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Daily</button>
+          <button onclick="loadLeaderboard(weekly, event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Weekly</button>
+          <button onclick="loadLeaderboard(global, event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Global</button>
         </div>
         <div id="leaderboardList" class="space-y-3"></div>
       </div>
@@ -738,7 +738,7 @@
         <div class="upgrade-card rounded-2xl p-6 mb-6">
           <div class="text-center">
             <div class="text-6xl mb-4">🎁</div>
-            <div class="text-xl font-bold mb-3">Earn 20% of friend's earnings!</div>
+            <div class="text-xl font-bold mb-3">Earn 20% of friends earnings!</div>
             <div class="text-sm opacity-75 mb-4">Invite friends and get 20% of everything they earn - forever!</div>
             <div class="grid grid-cols-2 gap-4 mt-4">
               <div class="stat-item">
@@ -859,10 +859,10 @@
               🎁 Give 1000 Coins to All
             </button>
             <button onclick="adminViewTopUsers()" class="btn-primary w-full py-2 rounded-xl">
-              † View Top 20 Users
+              🏆 View Top 20 Users
             </button>
             <button onclick="adminViewRecentUsers()" class="btn-primary w-full py-2 rounded-xl">
-              †• View Recent Users
+              🏆• View Recent Users
             </button>
           </div>
         </div>
@@ -887,7 +887,7 @@
               <div class="text-2xl font-bold glow" id="profileTotalEarned">0</div>
             </div>
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
-              <div class="text-xs opacity-75 mb-2">‘† Total Taps</div>
+              <div class="text-xs opacity-75 mb-2">‘🏆 Total Taps</div>
               <div class="text-2xl font-bold" id="profileTotalTaps">0</div>
             </div>
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
@@ -918,7 +918,7 @@
               <span class="font-bold" id="profileEnergyRegen">0.5/s</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="opacity-75">🎁¯ Critical Chance</span>
+              <span class="opacity-75">🎯 Critical Chance</span>
               <span class="font-bold" id="profileCritChance">5%</span>
             </div>
           </div>
@@ -946,32 +946,32 @@
 
     <!-- Bottom Navigation - Compact -->
     <div class="header flex border-t border-white border-opacity-10" id="bottomNav">
-      <button onclick="switchTab('game', event)" class="tab-btn tab-active flex-1 py-2 text-center">
+      <button onclick="switchTab(game, event)" class="tab-btn tab-active flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">🎁®</div>
         <div class="text-xs font-semibold">Game</div>
       </button>
-      <button onclick="switchTab('upgrades', event)" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab(upgrades, event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">⚡</div>
         <div class="text-xs font-semibold">Boost</div>
       </button>
-      <button onclick="switchTab('tasks', event)" class="tab-btn flex-1 py-2 text-center">
-        <div class="text-xl mb-0.5">🎁¯</div>
+      <button onclick="switchTab(tasks, event)" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">🎯</div>
         <div class="text-xs font-semibold">Tasks</div>
       </button>
-      <button onclick="switchTab('leaderboard', event)" class="tab-btn flex-1 py-2 text-center">
-        <div class="text-xl mb-0.5">†</div>
+      <button onclick="switchTab(leaderboard, event)" class="tab-btn flex-1 py-2 text-center">
+        <div class="text-xl mb-0.5">🏆</div>
         <div class="text-xs font-semibold">Top</div>
       </button>
-      <button onclick="switchTab('friends', event)" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab(friends, event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">‘¥</div>
         <div class="text-xs font-semibold">Friends</div>
       </button>
       <!-- Admin Tab (Hidden by default, shown only for admins) -->
-      <button onclick="switchTab('admin', event)" class="tab-btn flex-1 py-2 text-center hidden" id="adminTabBtn">
+      <button onclick="switchTab(admin, event)" class="tab-btn flex-1 py-2 text-center hidden" id="adminTabBtn">
         <div class="text-xl mb-0.5">”</div>
         <div class="text-xs font-semibold">Admin</div>
       </button>
-      <button onclick="switchTab('profile', event)" class="tab-btn flex-1 py-2 text-center">
+      <button onclick="switchTab(profile, event)" class="tab-btn flex-1 py-2 text-center">
         <div class="text-xl mb-0.5">‘¤</div>
         <div class="text-xs font-semibold">Me</div>
       </button>
