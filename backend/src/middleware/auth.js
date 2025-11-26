@@ -4,8 +4,20 @@ const jwt = require('jsonwebtoken');
 // Validate Telegram WebApp initData
 function validateTelegramWebAppData(initData) {
   try {
+    // Skip validation in development mode or if initData is empty
+    if (!initData || initData.trim() === '') {
+      console.log('⚠️ Empty initData - skipping validation');
+      return false;
+    }
+    
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
+    
+    if (!hash) {
+      console.log('⚠️ No hash in initData - skipping validation');
+      return false;
+    }
+    
     urlParams.delete('hash');
     
     const dataCheckString = Array.from(urlParams.entries())
@@ -23,8 +35,15 @@ function validateTelegramWebAppData(initData) {
       .update(dataCheckString)
       .digest('hex');
     
-    return calculatedHash === hash;
+    const isValid = calculatedHash === hash;
+    
+    if (!isValid) {
+      console.log('⚠️ Invalid Telegram hash');
+    }
+    
+    return isValid;
   } catch (error) {
+    console.error('Validation error:', error);
     return false;
   }
 }

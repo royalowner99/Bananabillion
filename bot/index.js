@@ -15,13 +15,20 @@ bot.start(async (ctx) => {
     const username = ctx.from.username || '';
     const firstName = ctx.from.first_name || '';
     
+    console.log(`👤 User ${userId} (${username}) started bot`);
+    
     // Extract referrer ID from deep link
     const referrerId = ctx.startPayload || null;
+    
+    if (referrerId) {
+      console.log(`🔗 Referrer ID: ${referrerId}`);
+    }
     
     // Find or create user
     let user = await User.findOne({ userId });
     
     if (!user) {
+      console.log(`✨ Creating new user: ${userId}`);
       user = new User({
         userId,
         username,
@@ -30,12 +37,26 @@ bot.start(async (ctx) => {
       
       if (referrerId && referrerId !== userId) {
         user.referredBy = referrerId;
+        console.log(`👥 User referred by: ${referrerId}`);
       }
       
       await user.save();
+    } else {
+      console.log(`👋 Existing user: ${userId}`);
     }
     
     const webAppUrl = process.env.WEBAPP_URL;
+    
+    if (!webAppUrl || webAppUrl.includes('your-app')) {
+      console.error('⚠️ WEBAPP_URL not configured properly!');
+      return ctx.reply(
+        '⚠️ *Bot Configuration Error*\n\n' +
+        'The web app URL is not configured. Please contact the administrator.',
+        { parse_mode: 'Markdown' }
+      );
+    }
+    
+    console.log(`🌐 Web App URL: ${webAppUrl}`);
     
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.webApp('🎮 Play Game', webAppUrl)],
@@ -56,9 +77,11 @@ bot.start(async (ctx) => {
       }
     );
     
+    console.log(`✅ Start message sent to ${userId}`);
+    
   } catch (error) {
-    console.error('Start command error:', error);
-    ctx.reply('❌ An error occurred. Please try again.');
+    console.error('❌ Start command error:', error);
+    ctx.reply('❌ An error occurred. Please try again later.');
   }
 });
 

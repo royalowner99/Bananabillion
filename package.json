@@ -7,7 +7,8 @@
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
     "bot": "node bot/index.js",
-    "admin": "node admin/server.js"
+    "admin": "node admin/server.js",
+    "test": "node test-server.js"
   },
   "keywords": ["telegram", "mini-app", "game"],
   "author": "",

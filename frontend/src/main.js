@@ -18,16 +18,25 @@ let energyRegenInterval = null;
 // Initialize
 async function init() {
   try {
+    console.log('🚀 Initializing app...');
+    console.log('API URL:', API_URL);
+    
     // Get init data from Telegram
     const initData = tg.initData;
     
+    console.log('Telegram initData:', initData ? 'Present' : 'Missing');
+    console.log('Telegram user:', tg.initDataUnsafe?.user);
+    
     if (!initData) {
-      showError('Please open this app from Telegram');
+      console.error('❌ No initData from Telegram');
+      showError('Please open this app from Telegram bot');
       return;
     }
     
     // Extract referrer from start param
     const startParam = tg.initDataUnsafe?.start_parameter;
+    
+    console.log('📡 Authenticating with server...');
     
     // Authenticate
     const response = await fetch(`${API_URL}/auth/telegram`, {
@@ -43,17 +52,23 @@ async function init() {
     
     const data = await response.json();
     
+    console.log('Server response:', response.status, data);
+    
     if (!response.ok) {
-      throw new Error(data.error || 'Authentication failed');
+      console.error('❌ Auth failed:', data);
+      throw new Error(data.details || data.error || 'Authentication failed');
     }
     
     authToken = data.token;
     userData = data.user;
     
+    console.log('✅ Authentication successful');
+    
     // Update UI
     updateUI();
     
     // Load initial data
+    console.log('📥 Loading game data...');
     await loadProfile();
     await loadUpgrades();
     await loadTasks();
@@ -64,14 +79,19 @@ async function init() {
     // Setup tap handler
     setupTapHandler();
     
+    console.log('✅ App initialized successfully');
+    
     // Check for offline earnings
     if (data.user.offlineEarnings > 0) {
       showNotification(`💰 Earned ${data.user.offlineEarnings} coins while offline!`);
     }
     
   } catch (error) {
-    console.error('Init error:', error);
-    showError(error.message);
+    console.error('❌ Init error:', error);
+    showError(`Error: ${error.message}`);
+    
+    // Show more details in console
+    console.error('Full error:', error);
   }
 }
 
@@ -483,7 +503,39 @@ function showNotification(message) {
 }
 
 function showError(message) {
-  tg.showAlert('❌ ' + message);
+  console.error('Showing error:', message);
+  
+  // Show in UI as well
+  const errorDiv = document.createElement('div');
+  errorDiv.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 80%;
+    text-align: center;
+    z-index: 9999;
+  `;
+  errorDiv.innerHTML = `
+    <div style="font-size: 48px; margin-bottom: 10px;">❌</div>
+    <div style="font-weight: bold; margin-bottom: 10px;">Error</div>
+    <div style="font-size: 14px;">${message}</div>
+    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: white; color: black; border: none; border-radius: 5px; font-weight: bold;">
+      Retry
+    </button>
+  `;
+  document.body.appendChild(errorDiv);
+  
+  // Also try Telegram alert
+  try {
+    tg.showAlert('❌ ' + message);
+  } catch (e) {
+    console.error('Could not show Telegram alert:', e);
+  }
 }
 
 // Start app
