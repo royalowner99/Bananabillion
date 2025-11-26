@@ -209,13 +209,21 @@ function setupTapHandler() {
   bananaBtn.addEventListener('touchstart', handleTap);
 }
 
-// Handle Tap
+// Handle Tap - Enhanced with animations
 function handleTap(e) {
   e.preventDefault();
   
   if (userData.energy < 1) {
     tg.HapticFeedback.notificationOccurred('error');
     showNotification('⚡ No energy left!');
+    
+    // Shake animation when no energy
+    const bananaBtn = document.getElementById('bananaBtn');
+    bananaBtn.style.animation = 'shake 0.5s';
+    setTimeout(() => {
+      bananaBtn.style.animation = '';
+    }, 500);
+    
     return;
   }
   
@@ -244,6 +252,9 @@ function handleTap(e) {
   // Show floating coin
   showFloatingCoin(e);
   
+  // Add click burst effect
+  showClickBurst(e);
+  
   // Haptic feedback
   tg.HapticFeedback.impactOccurred('light');
   
@@ -251,6 +262,76 @@ function handleTap(e) {
   if (tapQueue.length >= 5 || (tapQueue.length > 0 && now - tapQueue[0] > 500)) {
     sendTaps();
   }
+}
+
+// Show click burst effect
+function showClickBurst(e) {
+  const rect = e.target.getBoundingClientRect();
+  const x = (e.clientX || e.touches?.[0]?.clientX || rect.left + rect.width / 2);
+  const y = (e.clientY || e.touches?.[0]?.clientY || rect.top + rect.height / 2);
+  
+  // Create burst container
+  const burst = document.createElement('div');
+  burst.style.cssText = `
+    position: fixed;
+    left: ${x}px;
+    top: ${y}px;
+    pointer-events: none;
+    z-index: 9999;
+  `;
+  
+  // Create multiple burst particles
+  for (let i = 0; i < 8; i++) {
+    const particle = document.createElement('div');
+    const angle = (Math.PI * 2 * i) / 8;
+    const distance = 60 + Math.random() * 20;
+    const size = 8 + Math.random() * 6;
+    
+    particle.style.cssText = `
+      position: absolute;
+      width: ${size}px;
+      height: ${size}px;
+      background: radial-gradient(circle, #FFD700, #FFA500);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+      animation: burstParticle 0.6s ease-out forwards;
+      --angle: ${angle}rad;
+      --distance: ${distance}px;
+    `;
+    
+    burst.appendChild(particle);
+  }
+  
+  document.body.appendChild(burst);
+  setTimeout(() => burst.remove(), 600);
+}
+
+// Add burst particle animation CSS
+if (!document.getElementById('burstStyle')) {
+  const style = document.createElement('style');
+  style.id = 'burstStyle';
+  style.textContent = `
+    @keyframes burstParticle {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(
+          calc(cos(var(--angle)) * var(--distance)),
+          calc(sin(var(--angle)) * var(--distance))
+        ) scale(0);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 // Send Taps to Server - Optimized for faster updates
@@ -1027,39 +1108,79 @@ function copyReferralLink() {
   }
 }
 
-// Load Profile Data
-function loadProfileData() {
+// Load Profile Data - Enhanced
+async function loadProfileData() {
   try {
+    console.log('📊 Loading profile data...');
+    
+    // Fetch fresh profile data
+    const data = await apiCall('/user/profile');
+    
+    // Update userData with fresh data
+    userData = { ...userData, ...data };
+    
     // Update profile with current user data
-    document.getElementById('profileUsername').textContent = userData.username || 'Anonymous';
+    document.getElementById('profileUsername').textContent = userData.username || userData.firstName || 'Anonymous';
     document.getElementById('profileUserId').textContent = `ID: ${userData.userId}`;
     document.getElementById('profileTotalEarned').textContent = formatNumber(userData.totalEarned || 0);
     document.getElementById('profileTotalTaps').textContent = formatNumber(userData.totalTaps || 0);
     document.getElementById('profileTasksCompleted').textContent = userData.tasksCompleted || 0;
     document.getElementById('profileReferralCount').textContent = userData.referralCount || 0;
     
-    // Power stats
-    document.getElementById('profileTapPower').textContent = userData.tapPower || 1;
-    document.getElementById('profileMaxEnergy').textContent = userData.maxEnergy || 500;
-    document.getElementById('profileEnergyRegen').textContent = `${(userData.energyRegenRate || 0.5).toFixed(1)}/s`;
-    document.getElementById('profileCritChance').textContent = `${((userData.criticalChance || 0.05) * 100).toFixed(0)}%`;
+    // Power stats - Calculate from upgrades
+    const tapPower = 1 + (userData.upgrades?.tapPower || 0);
+    const maxEnergy = 500 + ((userData.upgrades?.maxEnergy || 0) * 50);
+    const energyRegen = 0.5 + ((userData.upgrades?.energyRegen || 0) * 0.3);
+    const critChance = 5 + (userData.upgrades?.criticalChance || 0);
+    
+    document.getElementById('profileTapPower').textContent = tapPower;
+    document.getElementById('profileMaxEnergy').textContent = maxEnergy;
+    document.getElementById('profileEnergyRegen').textContent = `${energyRegen.toFixed(1)}/s`;
+    document.getElementById('profileCritChance').textContent = `${critChance}%`;
     
     // Account info
     document.getElementById('profileDailyStreak').textContent = `${userData.dailyStreak || 0} days`;
     
     // Member since (from createdAt if available)
-    const memberSince = new Date().toLocaleDateString();
+    const memberSince = userData.createdAt 
+      ? new Date(userData.createdAt).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      : new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
     document.getElementById('profileMemberSince').textContent = memberSince;
     
-    // Play time
-    const playTimeMinutes = Math.floor((userData.totalPlayTime || 0) / 60);
+    // Play time - Calculate from account age and activity
+    const accountAge = userData.createdAt 
+      ? Math.floor((Date.now() - new Date(userData.createdAt).getTime()) / (1000 * 60))
+      : 0;
+    
+    // Estimate play time based on taps (rough estimate: 1 tap = 1 second of play)
+    const estimatedPlayTime = Math.floor((userData.totalTaps || 0) / 60);
+    const playTimeMinutes = Math.min(estimatedPlayTime, accountAge);
+    
     document.getElementById('profilePlayTime').textContent = playTimeMinutes > 60 
       ? `${Math.floor(playTimeMinutes / 60)}h ${playTimeMinutes % 60}m`
       : `${playTimeMinutes} min`;
     
-    console.log('✅ Profile data loaded');
+    console.log('✅ Profile data loaded successfully');
   } catch (error) {
-    console.error('Error loading profile:', error);
+    console.error('❌ Error loading profile:', error);
+    
+    // Fallback to cached userData
+    if (userData) {
+      document.getElementById('profileUsername').textContent = userData.username || userData.firstName || 'Anonymous';
+      document.getElementById('profileUserId').textContent = `ID: ${userData.userId}`;
+      document.getElementById('profileTotalEarned').textContent = formatNumber(userData.totalEarned || 0);
+      document.getElementById('profileTotalTaps').textContent = formatNumber(userData.totalTaps || 0);
+      document.getElementById('profileTasksCompleted').textContent = userData.tasksCompleted || 0;
+      document.getElementById('profileReferralCount').textContent = userData.referralCount || 0;
+    }
   }
 }
 
