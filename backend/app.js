@@ -25,13 +25,32 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Compression
 app.use(compression());
 
+// Root endpoint - API info
+app.get('/api', (req, res) => {
+  res.json({
+    name: 'BananaBillion API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth/telegram',
+      user: '/api/user/*',
+      tasks: '/api/tasks/*',
+      leaderboard: '/api/leaderboard/*'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    mongodb: require('mongoose').connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb: require('mongoose').connection.readyState === 1 ? 'connected' : 'disconnected',
+    webappUrl: process.env.WEBAPP_URL || 'not set',
+    botToken: process.env.BOT_TOKEN ? 'set' : 'not set',
+    jwtSecret: process.env.JWT_SECRET ? 'set' : 'not set'
   });
 });
 
@@ -44,10 +63,15 @@ app.use('/api/leaderboard', require('./src/routes/leaderboard'));
 app.use('/api/withdraw', require('./src/routes/withdraw'));
 app.use('/api/admin', require('./src/routes/admin'));
 
-// Serve frontend
+// Serve frontend (only for non-API routes)
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// Catch-all route for frontend (must be last)
 app.get('*', (req, res) => {
+  // Don't serve frontend for API routes
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
