@@ -62,6 +62,9 @@ app.use('/api/referrals', require('./src/routes/referral'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard'));
 app.use('/api/withdraw', require('./src/routes/withdraw'));
 app.use('/api/admin', require('./src/routes/admin'));
+app.use('/api/minigames', require('./src/routes/miniGame'));
+app.use('/api/lottery', require('./src/routes/lottery'));
+app.use('/api/spin', require('./src/routes/dailySpin'));
 
 // Serve frontend (only for non-API routes)
 app.use(express.static(path.join(__dirname, '../frontend')));

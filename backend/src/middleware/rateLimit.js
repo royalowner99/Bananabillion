@@ -38,9 +38,20 @@ const withdrawLimiter = rateLimit({
   keyGenerator: (req) => req.userId || req.ip
 });
 
+// Game limiter for mini games
+const gameLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 games per minute max
+  message: { error: 'Too many game requests, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.userId || req.ip
+});
+
 module.exports = {
   apiLimiter,
   tapLimiter,
   authLimiter,
-  withdrawLimiter
+  withdrawLimiter,
+  gameLimiter
 };

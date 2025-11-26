@@ -119,6 +119,30 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  miniGamesPlayed: {
+    type: Number,
+    default: 0
+  },
+  miniGamesWon: {
+    type: Number,
+    default: 0
+  },
+  battlesPlayed: {
+    type: Number,
+    default: 0
+  },
+  battlesWon: {
+    type: Number,
+    default: 0
+  },
+  lotteryTicketsBought: {
+    type: Number,
+    default: 0
+  },
+  dailySpinsUsed: {
+    type: Number,
+    default: 0
+  },
   isBanned: {
     type: Boolean,
     default: false

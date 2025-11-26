@@ -60,7 +60,7 @@ exports.getTasks = async (req, res) => {
 
 exports.completeTask = async (req, res) => {
   try {
-    const { taskId } = req.body;
+    const { taskId, verification } = req.body;
     
     if (!taskId) {
       return res.status(400).json({ error: 'Task ID required' });
@@ -103,6 +103,19 @@ exports.completeTask = async (req, res) => {
         return res.status(400).json({ 
           error: 'Task on cooldown',
           timeRemaining: Math.ceil(cooldown - timeSinceComplete)
+        });
+      }
+    }
+    
+    // Verify task completion for Telegram join tasks
+    if (taskId.includes('join') && task.link) {
+      // For Telegram join tasks, require verification
+      // In production, you would check via Telegram Bot API if user is member
+      // For now, we'll trust the frontend verification
+      if (!verification || !verification.confirmed) {
+        return res.status(400).json({ 
+          error: 'Task verification required',
+          message: 'Please confirm you have completed the task'
         });
       }
     }
