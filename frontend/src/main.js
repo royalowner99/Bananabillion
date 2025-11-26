@@ -169,7 +169,7 @@ async function loadProfile() {
   }
 }
 
-// Update UI
+// Update UI - Enhanced with dynamic energy bar states
 function updateUI() {
   if (!userData) return;
   
@@ -180,9 +180,25 @@ function updateUI() {
   document.getElementById('referralCount').textContent = userData.referralCount || 0;
   document.getElementById('referralEarnings').textContent = formatNumber(userData.referralEarnings || 0);
   
-  // Update energy bar
+  // Update energy bar with dynamic states
   const energyPercent = (userData.energy / userData.maxEnergy) * 100;
-  document.getElementById('energyBar').style.width = `${energyPercent}%`;
+  const energyBar = document.getElementById('energyBar');
+  
+  energyBar.style.width = `${energyPercent}%`;
+  
+  // Remove all state classes
+  energyBar.classList.remove('energy-full', 'energy-medium', 'energy-low', 'energy-critical');
+  
+  // Add appropriate state class based on energy level
+  if (energyPercent < 10) {
+    energyBar.classList.add('energy-critical');
+  } else if (energyPercent < 30) {
+    energyBar.classList.add('energy-low');
+  } else if (energyPercent < 80) {
+    energyBar.classList.add('energy-medium');
+  } else {
+    energyBar.classList.add('energy-full');
+  }
 }
 
 // Setup Tap Handler
@@ -332,21 +348,90 @@ function showFloatingCoin(e) {
   }
 }
 
-// Energy Regeneration - Slower for better engagement
+// Energy Regeneration - Enhanced with visual feedback
 function startEnergyRegen() {
   if (energyRegenInterval) clearInterval(energyRegenInterval);
   
-  // Regenerate energy every 1 second (not 100ms)
-  // This makes users wait and engage more with the game
+  // Regenerate energy every 1 second
   energyRegenInterval = setInterval(() => {
     if (userData.energy < userData.maxEnergy) {
+      const previousEnergy = userData.energy;
       userData.energy = Math.min(
         userData.energy + (userData.energyRegenRate || 0.5),
         userData.maxEnergy
       );
+      
+      // Check if energy just became full
+      if (previousEnergy < userData.maxEnergy && userData.energy >= userData.maxEnergy) {
+        // Energy is now full - show notification
+        showEnergyFullNotification();
+      }
+      
       updateUI();
     }
-  }, 1000); // Changed from 100ms to 1000ms (1 second)
+  }, 1000);
+}
+
+// Show energy full notification
+function showEnergyFullNotification() {
+  try {
+    // Haptic feedback
+    tg.HapticFeedback.notificationOccurred('success');
+    
+    // Show floating notification
+    const notification = document.createElement('div');
+    notification.className = 'energy-full-notification';
+    notification.innerHTML = '⚡ Energy Full!';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #00FF00, #32CD32);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+      z-index: 9999;
+      animation: energyFullPop 2s ease-out forwards;
+      pointer-events: none;
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+    
+    console.log('⚡ Energy is now full!');
+  } catch (error) {
+    console.error('Error showing energy full notification:', error);
+  }
+}
+
+// Add CSS for energy full notification animation
+if (!document.getElementById('energyFullStyle')) {
+  const style = document.createElement('style');
+  style.id = 'energyFullStyle';
+  style.textContent = `
+    @keyframes energyFullPop {
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.5);
+      }
+      20% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.1);
+      }
+      80% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.8) translateY(-20px);
+      }
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 // Load Upgrades - Optimized with caching
@@ -519,82 +604,120 @@ async function loadTasks(forceRefresh = false) {
   }
 }
 
-// Render Tasks - Separated for reusability
+// Render Tasks - Advanced with better sorting and UI
 function renderTasks(tasks) {
   try {
-    
     const tasksList = document.getElementById('tasksList');
     tasksList.innerHTML = '';
     
-    // Sort tasks: available first, then completed
-    const sortedTasks = data.tasks.sort((a, b) => {
+    // Sort tasks: available first, then by reward, then completed
+    const sortedTasks = tasks.sort((a, b) => {
+      // Priority 1: Available tasks first
       if (a.canComplete && !b.canComplete) return -1;
       if (!a.canComplete && b.canComplete) return 1;
+      
+      // Priority 2: Higher rewards first
+      if (a.canComplete && b.canComplete) {
+        return b.reward - a.reward;
+      }
+      
+      // Priority 3: Completed tasks last
+      if (a.completed && !b.completed) return 1;
+      if (!a.completed && b.completed) return -1;
+      
       return 0;
     });
     
-    sortedTasks.forEach(task => {
+    sortedTasks.forEach((task, index) => {
       const card = document.createElement('div');
       card.className = 'task-card rounded-2xl p-4';
+      
+      // Add animation delay for staggered appearance
+      card.style.animationDelay = `${index * 0.05}s`;
       
       // Determine button state and text
       let buttonText = '🎯 Start';
       let canComplete = task.canComplete;
       let buttonClass = 'btn-primary';
+      let cardOpacity = '';
       
       if (task.completed && task.type === 'one-time') {
         buttonText = '✅ Completed';
         canComplete = false;
         buttonClass = 'btn-primary btn-disabled';
+        cardOpacity = 'opacity-60';
       } else if (task.type === 'daily' && task.completed && task.timeRemaining > 0) {
         const hours = Math.floor(task.timeRemaining / 3600);
         const minutes = Math.floor((task.timeRemaining % 3600) / 60);
         buttonText = `⏰ ${hours}h ${minutes}m`;
         canComplete = false;
         buttonClass = 'btn-primary btn-disabled';
+        cardOpacity = 'opacity-75';
       } else if (!task.canComplete && task.timeRemaining > 0) {
         const hours = Math.floor(task.timeRemaining / 3600);
         const minutes = Math.floor((task.timeRemaining % 3600) / 60);
         buttonText = `⏰ ${hours}h ${minutes}m`;
         canComplete = false;
         buttonClass = 'btn-primary btn-disabled';
+        cardOpacity = 'opacity-75';
       } else if (task.canComplete && !task.link) {
         // Tasks without links show "Collect" (can be claimed directly)
         buttonText = '💰 Collect';
+        card.classList.add('task-available');
       } else if (task.canComplete && task.link) {
         // Tasks with links show "Start" (need to complete action first)
         buttonText = '🎯 Start';
+        card.classList.add('task-available');
+      }
+      
+      // Add opacity class
+      if (cardOpacity) {
+        card.classList.add(cardOpacity);
       }
       
       // Add completion count for repeatable tasks
       let completionInfo = '';
       if (task.completionCount > 0 && task.type !== 'one-time') {
-        completionInfo = `<div class="text-xs opacity-60 mt-1">Completed ${task.completionCount} times</div>`;
+        completionInfo = `<div class="text-xs opacity-60 mt-1">✨ Completed ${task.completionCount} times</div>`;
+      }
+      
+      // Add progress indicator for tasks with cooldown
+      let progressBar = '';
+      if (task.timeRemaining > 0 && (task.type === 'daily' || task.type === 'cooldown')) {
+        const cooldownTotal = task.type === 'daily' ? 86400 : task.cooldownSeconds || 86400;
+        const progressPercent = ((cooldownTotal - task.timeRemaining) / cooldownTotal) * 100;
+        progressBar = `
+          <div class="w-full bg-black bg-opacity-30 rounded-full h-1 mt-2 overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+          </div>
+        `;
       }
       
       card.innerHTML = `
         <div class="flex justify-between items-center gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
-              <span class="text-4xl">${task.icon}</span>
+              <span class="text-4xl ${canComplete ? 'animate-bounce' : ''}">${task.icon}</span>
               <div class="flex-1">
                 <div class="font-bold text-lg">${task.title}</div>
                 <div class="text-sm opacity-75">${task.description}</div>
                 ${completionInfo}
               </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
               <div class="flex items-center gap-2">
-                <span class="text-yellow-400 font-bold glow text-lg">+${task.reward}</span>
+                <span class="text-yellow-400 font-bold glow text-lg">+${formatNumber(task.reward)}</span>
                 <span class="text-xs opacity-75">coins</span>
               </div>
-              ${task.type === 'daily' ? '<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded">Daily</span>' : ''}
-              ${task.type === 'one-time' ? '<span class="text-xs bg-purple-500 bg-opacity-30 px-2 py-1 rounded">One-time</span>' : ''}
+              ${task.type === 'daily' ? '<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded-full border border-blue-400 border-opacity-30">🔄 Daily</span>' : ''}
+              ${task.type === 'one-time' ? '<span class="text-xs bg-purple-500 bg-opacity-30 px-2 py-1 rounded-full border border-purple-400 border-opacity-30">⭐ One-time</span>' : ''}
+              ${task.type === 'cooldown' ? '<span class="text-xs bg-orange-500 bg-opacity-30 px-2 py-1 rounded-full border border-orange-400 border-opacity-30">⏱️ Cooldown</span>' : ''}
             </div>
+            ${progressBar}
           </div>
           <button 
             onclick="completeTask('${task.taskId}')"
-            class="${buttonClass} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap"
+            class="${buttonClass} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-300 hover:scale-105"
             ${!canComplete ? 'disabled' : ''}
           >
             ${buttonText}

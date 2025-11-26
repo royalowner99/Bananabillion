@@ -172,23 +172,81 @@
       transform: translateY(-2px);
     }
     
-    /* Energy Bar - Enhanced */
+    /* Energy Bar - Advanced with Dynamic States */
     .energy-bar-container {
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.4);
       border-radius: 20px;
       overflow: hidden;
       border: 2px solid rgba(255, 255, 255, 0.2);
       box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    
+    .energy-bar-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        transparent 100%);
+      animation: containerShimmer 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes containerShimmer {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
     }
     
     .energy-bar {
-      transition: width 0.3s ease;
-      background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+                  background 0.3s ease,
+                  box-shadow 0.3s ease;
+      background: linear-gradient(90deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
       box-shadow: 
         0 0 20px rgba(255, 215, 0, 0.6),
         inset 0 2px 10px rgba(255, 255, 255, 0.3);
       position: relative;
       overflow: hidden;
+    }
+    
+    /* Energy Full State (>80%) */
+    .energy-bar.energy-full {
+      background: linear-gradient(90deg, #00FF00 0%, #32CD32 50%, #00FF00 100%);
+      box-shadow: 
+        0 0 25px rgba(0, 255, 0, 0.8),
+        inset 0 2px 10px rgba(255, 255, 255, 0.4);
+      animation: energyPulseFull 1.5s ease-in-out infinite;
+    }
+    
+    /* Energy Medium State (30-80%) */
+    .energy-bar.energy-medium {
+      background: linear-gradient(90deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
+      box-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.6),
+        inset 0 2px 10px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Energy Low State (<30%) */
+    .energy-bar.energy-low {
+      background: linear-gradient(90deg, #FF6B6B 0%, #FF4444 50%, #FF0000 100%);
+      box-shadow: 
+        0 0 20px rgba(255, 0, 0, 0.8),
+        inset 0 2px 10px rgba(255, 255, 255, 0.3);
+      animation: energyPulseLow 0.8s ease-in-out infinite;
+    }
+    
+    /* Energy Critical State (<10%) */
+    .energy-bar.energy-critical {
+      background: linear-gradient(90deg, #8B0000 0%, #FF0000 50%, #8B0000 100%);
+      box-shadow: 
+        0 0 30px rgba(255, 0, 0, 1),
+        inset 0 2px 10px rgba(255, 255, 255, 0.4);
+      animation: energyCritical 0.5s ease-in-out infinite;
     }
     
     .energy-bar::after {
@@ -198,13 +256,48 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
       animation: shimmer 2s infinite;
     }
     
     @keyframes shimmer {
       0% { left: -100%; }
       100% { left: 100%; }
+    }
+    
+    @keyframes energyPulseFull {
+      0%, 100% { 
+        box-shadow: 0 0 25px rgba(0, 255, 0, 0.8),
+                    inset 0 2px 10px rgba(255, 255, 255, 0.4);
+      }
+      50% { 
+        box-shadow: 0 0 35px rgba(0, 255, 0, 1),
+                    inset 0 2px 15px rgba(255, 255, 255, 0.5);
+      }
+    }
+    
+    @keyframes energyPulseLow {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.8),
+                    inset 0 2px 10px rgba(255, 255, 255, 0.3);
+      }
+      50% { 
+        box-shadow: 0 0 30px rgba(255, 0, 0, 1),
+                    inset 0 2px 15px rgba(255, 255, 255, 0.4);
+      }
+    }
+    
+    @keyframes energyCritical {
+      0%, 100% { 
+        opacity: 1;
+        box-shadow: 0 0 30px rgba(255, 0, 0, 1),
+                    inset 0 2px 10px rgba(255, 255, 255, 0.4);
+      }
+      50% { 
+        opacity: 0.7;
+        box-shadow: 0 0 40px rgba(255, 0, 0, 1),
+                    inset 0 2px 15px rgba(255, 255, 255, 0.5);
+      }
     }
     
     /* Tab Navigation - Enhanced */
@@ -243,12 +336,41 @@
       border-radius: 16px;
       transition: all 0.3s ease;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      animation: fadeInUp 0.5s ease-out forwards;
+      opacity: 0;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
     .upgrade-card:hover, .task-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
       border-color: rgba(255, 215, 0, 0.4);
+    }
+    
+    /* Task Available - Special highlight */
+    .task-card.task-available {
+      border: 2px solid rgba(255, 215, 0, 0.5);
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);
+      animation: taskPulse 2s ease-in-out infinite, fadeInUp 0.5s ease-out forwards;
+    }
+    
+    @keyframes taskPulse {
+      0%, 100% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(255, 215, 0, 0.3);
+      }
+      50% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 30px rgba(255, 215, 0, 0.5);
+      }
     }
     
     /* Buttons - Enhanced */
