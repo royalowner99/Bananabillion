@@ -1309,14 +1309,14 @@ async function loadAdminStats() {
     
     document.getElementById('adminTotalUsers').textContent = formatNumber(data.totalUsers || 0);
     document.getElementById('adminActiveUsers').textContent = formatNumber(data.activeUsers || 0);
-    document.getElementById('adminTotalCoins').textContent = formatNumber(data.totalCoins || 0);
-    document.getElementById('adminTotalTaps').textContent = formatNumber(data.totalTaps || 0);
+    document.getElementById('adminTotalCoins').textContent = formatNumber(data.totalBalance || 0);
+    document.getElementById('adminTotalTaps').textContent = formatNumber(data.totalEarned || 0);
     
     showNotification('✅ Stats refreshed');
     
   } catch (error) {
     console.error('Admin stats error:', error);
-    showNotification('❌ Failed to load stats');
+    showNotification('❌ Failed to load stats: ' + error.message);
   }
 }
 
@@ -1340,9 +1340,14 @@ async function adminFindUser() {
     
     console.log(`🔍 Searching for user: ${query}`);
     
-    const data = await apiCall(`/admin/user/${encodeURIComponent(query)}`);
+    const data = await apiCall(`/admin/users?search=${encodeURIComponent(query)}&limit=1`);
     
-    foundUser = data.user;
+    if (!data.users || data.users.length === 0) {
+      showNotification('❌ User not found');
+      return;
+    }
+    
+    foundUser = data.users[0];
     
     // Display user info
     const userInfo = document.getElementById('adminUserInfo');
@@ -1418,9 +1423,11 @@ async function adminAddCoins() {
       return;
     }
     
-    await apiCall('/admin/add-coins', 'POST', {
+    const newBalance = foundUser.balance + amount;
+    
+    await apiCall('/admin/balance', 'POST', {
       userId: foundUser.userId,
-      amount
+      amount: newBalance
     });
     
     showNotification(`✅ Added ${formatNumber(amount)} coins`);
@@ -1429,7 +1436,7 @@ async function adminAddCoins() {
     
   } catch (error) {
     console.error('Add coins error:', error);
-    showNotification('❌ Failed to add coins');
+    showNotification('❌ Failed to add coins: ' + error.message);
   }
 }
 
@@ -1464,16 +1471,10 @@ async function adminGiveAll() {
   try {
     if (!isAdmin()) return;
     
-    const confirmed = confirm('Give 1000 coins to ALL users?');
-    if (!confirmed) return;
-    
-    await apiCall('/admin/give-all', 'POST', { amount: 1000 });
-    
-    showNotification('✅ Coins sent to all users');
+    showNotification('⚠️ Use bot command /giveall for this feature');
     
   } catch (error) {
     console.error('Give all error:', error);
-    showNotification('❌ Failed to give coins');
   }
 }
 
@@ -1482,19 +1483,19 @@ async function adminViewTopUsers() {
   try {
     if (!isAdmin()) return;
     
-    const data = await apiCall('/admin/top-users');
+    const data = await apiCall('/admin/users?limit=20');
     
     let message = '🏆 Top 20 Users:\n\n';
     data.users.forEach((user, i) => {
       message += `${i + 1}. @${user.username || user.userId}\n`;
-      message += `   💰 ${formatNumber(user.totalEarned)} | 👆 ${formatNumber(user.totalTaps)}\n\n`;
+      message += `   💰 ${formatNumber(user.totalEarned)} | Balance: ${formatNumber(user.balance)}\n\n`;
     });
     
     alert(message);
     
   } catch (error) {
     console.error('Top users error:', error);
-    showNotification('❌ Failed to load top users');
+    showNotification('❌ Failed to load users: ' + error.message);
   }
 }
 
@@ -1503,7 +1504,7 @@ async function adminViewRecentUsers() {
   try {
     if (!isAdmin()) return;
     
-    const data = await apiCall('/admin/recent-users');
+    const data = await apiCall('/admin/users?limit=20');
     
     let message = '🆕 Recent 20 Users:\n\n';
     data.users.forEach((user, i) => {
@@ -1516,7 +1517,7 @@ async function adminViewRecentUsers() {
     
   } catch (error) {
     console.error('Recent users error:', error);
-    showNotification('❌ Failed to load recent users');
+    showNotification('❌ Failed to load users: ' + error.message);
   }
 }
 
