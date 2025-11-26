@@ -357,16 +357,24 @@ async function loadUpgrades() {
           break;
       }
       
+      // Calculate progress percentage
+      const progressPercent = (upgrade.currentLevel / upgrade.maxLevel) * 100;
+      
       card.innerHTML = `
         <div class="flex justify-between items-center gap-4">
           <div class="flex-1">
-            <div class="font-bold text-lg mb-1">${upgrade.name}</div>
-            <div class="text-sm opacity-75 mb-1">${upgrade.description}</div>
-            ${!upgrade.isMaxed ? `<div class="text-xs text-yellow-400 mb-2">📈 ${benefit}</div>` : ''}
-            <div class="flex items-center gap-3">
-              <div class="text-xs opacity-60">Level ${upgrade.currentLevel}/${upgrade.maxLevel}</div>
-              ${upgrade.currentLevel > 0 ? `<div class="text-xs text-green-400">✓ Active</div>` : ''}
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-bold text-lg">${upgrade.name}</div>
+              <div class="text-xs opacity-60">Lv ${upgrade.currentLevel}/${upgrade.maxLevel}</div>
             </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-black bg-opacity-30 rounded-full h-2 mb-2 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+            </div>
+            
+            <div class="text-sm opacity-75 mb-1">${upgrade.description}</div>
+            ${!upgrade.isMaxed ? `<div class="text-xs text-yellow-400">📈 ${benefit}</div>` : '<div class="text-xs text-green-400">✨ Maxed Out!</div>'}
           </div>
           <button 
             onclick="buyUpgrade('${upgrade.id}')"
@@ -386,7 +394,7 @@ async function loadUpgrades() {
   }
 }
 
-// Buy Upgrade
+// Buy Upgrade - No popup, just smooth update
 async function buyUpgrade(upgradeId) {
   try {
     const data = await apiCall('/user/upgrade', 'POST', { upgradeId });
@@ -404,12 +412,16 @@ async function buyUpgrade(upgradeId) {
     updateUI();
     await loadUpgrades();
     
+    // Just haptic feedback, no popup
     tg.HapticFeedback.notificationOccurred('success');
-    showNotification('✅ Upgrade purchased!');
+    
+    console.log(`✅ Upgraded ${upgradeId}`);
     
   } catch (error) {
     tg.HapticFeedback.notificationOccurred('error');
-    showNotification(error.message);
+    // Only show error if something went wrong
+    console.error('Upgrade error:', error);
+    showNotification(`❌ ${error.message}`);
   }
 }
 
@@ -441,7 +453,7 @@ async function loadTasks() {
       card.className = 'task-card rounded-2xl p-4';
       
       // Determine button state and text
-      let buttonText = '✨ Complete';
+      let buttonText = '🎯 Start';
       let canComplete = task.canComplete;
       let buttonClass = 'btn-primary';
       
@@ -461,6 +473,12 @@ async function loadTasks() {
         buttonText = `⏰ ${hours}h ${minutes}m`;
         canComplete = false;
         buttonClass = 'btn-primary btn-disabled';
+      } else if (task.canComplete && !task.link) {
+        // Tasks without links show "Collect" (can be claimed directly)
+        buttonText = '💰 Collect';
+      } else if (task.canComplete && task.link) {
+        // Tasks with links show "Start" (need to complete action first)
+        buttonText = '🎯 Start';
       }
       
       // Add completion count for repeatable tasks
@@ -599,8 +617,8 @@ async function completeTask(taskId) {
         return;
       }
     } else {
-      // Tasks without links can be completed directly
-      console.log('✅ Task has no link, completing directly');
+      // Tasks without links can be collected directly (no confirmation needed)
+      console.log('💰 Task has no link, collecting directly');
       verified = true;
     }
     
