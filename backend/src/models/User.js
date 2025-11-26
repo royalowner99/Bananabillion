@@ -23,11 +23,13 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+    // Supports unlimited balance up to JavaScript's MAX_SAFE_INTEGER (9,007,199,254,740,991)
   },
   totalEarned: {
     type: Number,
     default: 0,
     min: 0
+    // Supports unlimited earnings tracking
   },
   energy: {
     type: Number,

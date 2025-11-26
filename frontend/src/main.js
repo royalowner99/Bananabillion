@@ -1243,14 +1243,18 @@ function closeDailyModal() {
   document.getElementById('dailyModal').classList.remove('active');
 }
 
-// Utilities
+// Utilities - Enhanced for unlimited balance
 function formatNumber(num) {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000000000000) {
+    return (num / 1000000000000).toFixed(2) + 'T'; // Trillion
+  } else if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(2) + 'B'; // Billion
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'; // Million
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + 'K'; // Thousand
   }
-  return num.toString();
+  return Math.floor(num).toString();
 }
 
 function showNotification(message) {
