@@ -79,6 +79,9 @@ async function init() {
     // Setup tap handler
     setupTapHandler();
     
+    // Start periodic sync (every 10 seconds)
+    startPeriodicSync();
+    
     console.log('✅ App initialized successfully');
     
     // Check for offline earnings
@@ -187,7 +190,7 @@ function handleTap(e) {
   
   lastTapTime = now;
   
-  // Update UI
+  // Update UI immediately for better feedback
   updateUI();
   document.getElementById('combo').textContent = `${comboCount}x`;
   
@@ -197,13 +200,13 @@ function handleTap(e) {
   // Haptic feedback
   tg.HapticFeedback.impactOccurred('light');
   
-  // Send taps to server (batch)
-  if (tapQueue.length >= 10 || now - tapQueue[0] > 1000) {
+  // Send taps to server more frequently (every 5 taps or 500ms)
+  if (tapQueue.length >= 5 || (tapQueue.length > 0 && now - tapQueue[0] > 500)) {
     sendTaps();
   }
 }
 
-// Send Taps to Server
+// Send Taps to Server - Optimized for faster updates
 async function sendTaps() {
   if (tapQueue.length === 0) return;
   
@@ -216,9 +219,13 @@ async function sendTaps() {
       timestamps: taps
     });
     
-    // Update balance
+    // Update balance immediately from server
     userData.balance = data.balance;
     userData.energy = data.energy;
+    userData.totalTaps = (userData.totalTaps || 0) + taps.length;
+    
+    // Update total taps display
+    document.getElementById('totalTaps').textContent = formatNumber(userData.totalTaps);
     
     if (data.criticalHits > 0) {
       critCount += data.criticalHits;
@@ -226,13 +233,18 @@ async function sendTaps() {
       tg.HapticFeedback.notificationOccurred('success');
     }
     
+    // Force UI update
     updateUI();
     
+    console.log(`✅ Sent ${taps.length} taps, balance: ${userData.balance}`);
+    
   } catch (error) {
-    console.error('Send taps error:', error);
+    console.error('❌ Send taps error:', error);
     // Restore energy on error
     userData.energy += taps.length;
+    userData.balance -= taps.length * (userData.tapPower || 1); // Revert optimistic update
     updateUI();
+    showNotification('Failed to sync taps, please try again');
   }
 }
 
@@ -395,50 +407,94 @@ async function loadTasks() {
   }
 }
 
-// Complete Task
+// Complete Task - With proper verification
 async function completeTask(taskId) {
   try {
+    console.log(`🎯 Attempting to complete task: ${taskId}`);
+    
     // Find the task
-    const tasks = await apiCall('/tasks/list');
-    const task = tasks.tasks.find(t => t.taskId === taskId);
+    const tasksData = await apiCall('/tasks/list');
+    const task = tasksData.tasks.find(t => t.taskId === taskId);
     
     if (!task) {
       throw new Error('Task not found');
     }
     
-    // If task has a link, open it first
+    // Check if already completed
+    if (task.completed && task.type === 'one-time') {
+      showNotification('❌ Task already completed');
+      return;
+    }
+    
+    // Check if can complete (cooldown)
+    if (!task.canComplete) {
+      const hours = Math.floor(task.timeRemaining / 3600);
+      const minutes = Math.floor((task.timeRemaining % 3600) / 60);
+      showNotification(`⏰ Wait ${hours}h ${minutes}m before completing again`);
+      return;
+    }
+    
+    let verified = false;
+    
+    // If task has a link, require verification
     if (task.link) {
+      console.log(`🔗 Opening task link: ${task.link}`);
+      
+      // Open the link
       tg.openLink(task.link);
       
-      // Show confirmation dialog after opening link
+      // Wait 3 seconds to ensure user sees the content
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Show confirmation dialog
       const confirmed = await new Promise((resolve) => {
-        setTimeout(() => {
-          tg.showConfirm(
-            'Did you complete the task?',
-            (result) => resolve(result)
-          );
-        }, 2000); // Wait 2 seconds before asking
+        tg.showConfirm(
+          `Did you complete: ${task.title}?\n\nOnly confirm if you actually completed the task. False confirmations may result in account suspension.`,
+          (result) => resolve(result)
+        );
       });
       
       if (!confirmed) {
-        showNotification('❌ Task not completed');
+        console.log('❌ User cancelled task verification');
+        showNotification('❌ Task cancelled');
         return;
       }
+      
+      verified = true;
+    } else {
+      // Tasks without links can be completed directly
+      verified = true;
     }
     
-    // Complete the task
-    const data = await apiCall('/tasks/complete', 'POST', { taskId });
+    // Complete the task with verification
+    console.log(`✅ Completing task with verification: ${verified}`);
     
+    const data = await apiCall('/tasks/complete', 'POST', { 
+      taskId,
+      verification: {
+        confirmed: verified,
+        timestamp: Date.now()
+      }
+    });
+    
+    // Update balance
     userData.balance = data.balance;
+    userData.tasksCompleted = data.tasksCompleted;
+    
+    // Update UI
     updateUI();
     await loadTasks();
     
+    // Show success
     tg.HapticFeedback.notificationOccurred('success');
-    showNotification(`✅ Earned ${data.reward} coins!`);
+    showNotification(`🎉 Task completed! +${data.reward} coins`);
+    
+    console.log(`✅ Task completed successfully. New balance: ${userData.balance}`);
     
   } catch (error) {
+    console.error('❌ Complete task error:', error);
     tg.HapticFeedback.notificationOccurred('error');
-    showNotification(error.message);
+    showNotification(`❌ ${error.message || 'Failed to complete task'}`);
   }
 }
 
@@ -581,6 +637,35 @@ function showError(message) {
 // Start app
 init();
 
+// Periodic sync to keep balance updated
+let syncInterval = null;
+
+function startPeriodicSync() {
+  if (syncInterval) clearInterval(syncInterval);
+  
+  syncInterval = setInterval(async () => {
+    // Send any pending taps
+    if (tapQueue.length > 0) {
+      await sendTaps();
+    }
+    
+    // Sync profile every 10 seconds to ensure balance is accurate
+    try {
+      const data = await apiCall('/user/profile');
+      
+      // Only update if there's a significant difference (to avoid flickering)
+      if (Math.abs(data.balance - userData.balance) > 10) {
+        console.log(`🔄 Synced balance: ${userData.balance} → ${data.balance}`);
+        userData.balance = data.balance;
+        userData.totalEarned = data.totalEarned;
+        updateUI();
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+    }
+  }, 10000); // Every 10 seconds
+}
+
 // Cleanup on close
 window.addEventListener('beforeunload', () => {
   if (tapQueue.length > 0) {
@@ -588,5 +673,8 @@ window.addEventListener('beforeunload', () => {
   }
   if (energyRegenInterval) {
     clearInterval(energyRegenInterval);
+  }
+  if (syncInterval) {
+    clearInterval(syncInterval);
   }
 });
