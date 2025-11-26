@@ -413,49 +413,85 @@ async function buyUpgrade(upgradeId) {
   }
 }
 
-// Load Tasks
+// Load Tasks - With perfect logic
 async function loadTasks() {
   try {
+    console.log('📋 Loading tasks...');
     const data = await apiCall('/tasks/list');
+    
+    if (!data || !data.tasks) {
+      console.error('❌ No tasks data received');
+      return;
+    }
+    
+    console.log(`✅ Loaded ${data.tasks.length} tasks`);
     
     const tasksList = document.getElementById('tasksList');
     tasksList.innerHTML = '';
     
-    data.tasks.forEach(task => {
+    // Sort tasks: available first, then completed
+    const sortedTasks = data.tasks.sort((a, b) => {
+      if (a.canComplete && !b.canComplete) return -1;
+      if (!a.canComplete && b.canComplete) return 1;
+      return 0;
+    });
+    
+    sortedTasks.forEach(task => {
       const card = document.createElement('div');
-      card.className = 'upgrade-card rounded-lg p-4';
+      card.className = 'task-card rounded-2xl p-4';
       
-      const canComplete = task.canComplete && !task.completed;
+      // Determine button state and text
+      let buttonText = '✨ Complete';
+      let canComplete = task.canComplete;
+      let buttonClass = 'btn-primary';
       
-      let buttonText = 'Complete';
       if (task.completed && task.type === 'one-time') {
-        buttonText = '✓ Done';
+        buttonText = '✅ Completed';
+        canComplete = false;
+        buttonClass = 'btn-primary btn-disabled';
+      } else if (task.type === 'daily' && task.completed && task.timeRemaining > 0) {
+        const hours = Math.floor(task.timeRemaining / 3600);
+        const minutes = Math.floor((task.timeRemaining % 3600) / 60);
+        buttonText = `⏰ ${hours}h ${minutes}m`;
+        canComplete = false;
+        buttonClass = 'btn-primary btn-disabled';
       } else if (!task.canComplete && task.timeRemaining > 0) {
         const hours = Math.floor(task.timeRemaining / 3600);
         const minutes = Math.floor((task.timeRemaining % 3600) / 60);
-        buttonText = `${hours}h ${minutes}m`;
+        buttonText = `⏰ ${hours}h ${minutes}m`;
+        canComplete = false;
+        buttonClass = 'btn-primary btn-disabled';
       }
       
-      card.className = 'task-card rounded-2xl p-4';
+      // Add completion count for repeatable tasks
+      let completionInfo = '';
+      if (task.completionCount > 0 && task.type !== 'one-time') {
+        completionInfo = `<div class="text-xs opacity-60 mt-1">Completed ${task.completionCount} times</div>`;
+      }
       
       card.innerHTML = `
         <div class="flex justify-between items-center gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
               <span class="text-4xl">${task.icon}</span>
-              <div>
+              <div class="flex-1">
                 <div class="font-bold text-lg">${task.title}</div>
                 <div class="text-sm opacity-75">${task.description}</div>
+                ${completionInfo}
               </div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-yellow-400 font-bold glow">+${task.reward}</span>
-              <span class="text-xs opacity-75">coins</span>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <span class="text-yellow-400 font-bold glow text-lg">+${task.reward}</span>
+                <span class="text-xs opacity-75">coins</span>
+              </div>
+              ${task.type === 'daily' ? '<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded">Daily</span>' : ''}
+              ${task.type === 'one-time' ? '<span class="text-xs bg-purple-500 bg-opacity-30 px-2 py-1 rounded">One-time</span>' : ''}
             </div>
           </div>
           <button 
             onclick="completeTask('${task.taskId}')"
-            class="${canComplete ? 'btn-primary' : 'btn-primary btn-disabled'} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap"
+            class="${buttonClass} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap"
             ${!canComplete ? 'disabled' : ''}
           >
             ${buttonText}
@@ -466,72 +502,110 @@ async function loadTasks() {
       tasksList.appendChild(card);
     });
     
+    console.log('✅ Tasks loaded successfully');
+    
   } catch (error) {
-    console.error('Load tasks error:', error);
+    console.error('❌ Load tasks error:', error);
+    showNotification('Failed to load tasks');
   }
 }
 
-// Complete Task - With proper verification
+// Complete Task - Perfect logic with verification
 async function completeTask(taskId) {
   try {
     console.log(`🎯 Attempting to complete task: ${taskId}`);
     
-    // Find the task
+    // Fetch fresh task data
     const tasksData = await apiCall('/tasks/list');
+    
+    if (!tasksData || !tasksData.tasks) {
+      throw new Error('Failed to load tasks');
+    }
+    
     const task = tasksData.tasks.find(t => t.taskId === taskId);
     
     if (!task) {
       throw new Error('Task not found');
     }
     
-    // Check if already completed
+    console.log(`📋 Task details:`, {
+      id: task.taskId,
+      type: task.type,
+      completed: task.completed,
+      canComplete: task.canComplete,
+      timeRemaining: task.timeRemaining
+    });
+    
+    // Check if already completed (one-time tasks)
     if (task.completed && task.type === 'one-time') {
-      showNotification('❌ Task already completed');
+      showNotification('✅ Task already completed');
       return;
     }
     
-    // Check if can complete (cooldown)
+    // Check if on cooldown
     if (!task.canComplete) {
-      const hours = Math.floor(task.timeRemaining / 3600);
-      const minutes = Math.floor((task.timeRemaining % 3600) / 60);
-      showNotification(`⏰ Wait ${hours}h ${minutes}m before completing again`);
+      if (task.timeRemaining > 0) {
+        const hours = Math.floor(task.timeRemaining / 3600);
+        const minutes = Math.floor((task.timeRemaining % 3600) / 60);
+        showNotification(`⏰ Please wait ${hours}h ${minutes}m before completing again`);
+      } else {
+        showNotification('❌ Cannot complete this task right now');
+      }
       return;
     }
     
     let verified = false;
     
     // If task has a link, require verification
-    if (task.link) {
-      console.log(`🔗 Opening task link: ${task.link}`);
+    if (task.link && task.link.trim() !== '') {
+      console.log(`🔗 Task has link: ${task.link}`);
       
-      // Open the link
-      tg.openLink(task.link);
-      
-      // Wait 3 seconds to ensure user sees the content
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Show confirmation dialog
-      const confirmed = await new Promise((resolve) => {
-        tg.showConfirm(
-          `Did you complete: ${task.title}?\n\nOnly confirm if you actually completed the task. False confirmations may result in account suspension.`,
-          (result) => resolve(result)
-        );
-      });
-      
-      if (!confirmed) {
-        console.log('❌ User cancelled task verification');
-        showNotification('❌ Task cancelled');
+      try {
+        // Open the link
+        tg.openLink(task.link);
+        console.log('✅ Link opened');
+        
+        // Wait 3 seconds to ensure user sees the content
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Show confirmation dialog
+        const confirmed = await new Promise((resolve) => {
+          try {
+            tg.showConfirm(
+              `Did you complete: "${task.title}"?\n\n⚠️ Only confirm if you actually completed the task.\nFalse confirmations may result in account suspension.`,
+              (result) => {
+                console.log(`User confirmation result: ${result}`);
+                resolve(result);
+              }
+            );
+          } catch (err) {
+            console.error('Error showing confirm dialog:', err);
+            resolve(false);
+          }
+        });
+        
+        if (!confirmed) {
+          console.log('❌ User cancelled task verification');
+          showNotification('❌ Task cancelled');
+          return;
+        }
+        
+        verified = true;
+        console.log('✅ Task verified by user');
+        
+      } catch (linkError) {
+        console.error('Error opening link or showing dialog:', linkError);
+        showNotification('❌ Failed to open task link');
         return;
       }
-      
-      verified = true;
     } else {
       // Tasks without links can be completed directly
+      console.log('✅ Task has no link, completing directly');
       verified = true;
     }
     
     // Complete the task with verification
-    console.log(`✅ Completing task with verification: ${verified}`);
+    console.log(`📤 Sending completion request with verification: ${verified}`);
     
     const data = await apiCall('/tasks/complete', 'POST', { 
       taskId,
@@ -541,24 +615,38 @@ async function completeTask(taskId) {
       }
     });
     
-    // Update balance
+    console.log('✅ Task completion response:', data);
+    
+    // Update balance and stats
     userData.balance = data.balance;
     userData.tasksCompleted = data.tasksCompleted;
     
     // Update UI
     updateUI();
+    
+    // Reload tasks to show updated status
     await loadTasks();
     
-    // Show success
+    // Show success with haptic feedback
     tg.HapticFeedback.notificationOccurred('success');
-    showNotification(`🎉 Task completed! +${data.reward} coins`);
+    showNotification(`🎉 Task completed! Earned +${data.reward} coins`);
     
     console.log(`✅ Task completed successfully. New balance: ${userData.balance}`);
     
   } catch (error) {
     console.error('❌ Complete task error:', error);
     tg.HapticFeedback.notificationOccurred('error');
-    showNotification(`❌ ${error.message || 'Failed to complete task'}`);
+    
+    // Show specific error message
+    const errorMsg = error.message || 'Failed to complete task';
+    showNotification(`❌ ${errorMsg}`);
+    
+    // Reload tasks to ensure UI is in sync
+    try {
+      await loadTasks();
+    } catch (reloadError) {
+      console.error('Failed to reload tasks:', reloadError);
+    }
   }
 }
 
