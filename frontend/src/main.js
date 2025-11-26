@@ -254,19 +254,21 @@ function showFloatingCoin(e) {
   setTimeout(() => coin.remove(), 1000);
 }
 
-// Energy Regeneration
+// Energy Regeneration - Slower for better engagement
 function startEnergyRegen() {
   if (energyRegenInterval) clearInterval(energyRegenInterval);
   
+  // Regenerate energy every 1 second (not 100ms)
+  // This makes users wait and engage more with the game
   energyRegenInterval = setInterval(() => {
     if (userData.energy < userData.maxEnergy) {
       userData.energy = Math.min(
-        userData.energy + (userData.energyRegenRate || 1) / 10,
+        userData.energy + (userData.energyRegenRate || 0.5),
         userData.maxEnergy
       );
       updateUI();
     }
-  }, 100);
+  }, 1000); // Changed from 100ms to 1000ms (1 second)
 }
 
 // Load Upgrades
@@ -391,6 +393,35 @@ async function loadTasks() {
 // Complete Task
 async function completeTask(taskId) {
   try {
+    // Find the task
+    const tasks = await apiCall('/tasks/list');
+    const task = tasks.tasks.find(t => t.taskId === taskId);
+    
+    if (!task) {
+      throw new Error('Task not found');
+    }
+    
+    // If task has a link, open it first
+    if (task.link) {
+      tg.openLink(task.link);
+      
+      // Show confirmation dialog after opening link
+      const confirmed = await new Promise((resolve) => {
+        setTimeout(() => {
+          tg.showConfirm(
+            'Did you complete the task?',
+            (result) => resolve(result)
+          );
+        }, 2000); // Wait 2 seconds before asking
+      });
+      
+      if (!confirmed) {
+        showNotification('❌ Task not completed');
+        return;
+      }
+    }
+    
+    // Complete the task
     const data = await apiCall('/tasks/complete', 'POST', { taskId });
     
     userData.balance = data.balance;

@@ -1,8 +1,8 @@
 module.exports = {
-  // Base Stats
+  // Base Stats - Balanced for engagement
   BASE_TAP_POWER: parseInt(process.env.BASE_TAP_POWER) || 1,
-  BASE_MAX_ENERGY: parseInt(process.env.BASE_MAX_ENERGY) || 1000,
-  BASE_ENERGY_REGEN: parseFloat(process.env.BASE_ENERGY_REGEN) || 1,
+  BASE_MAX_ENERGY: parseInt(process.env.BASE_MAX_ENERGY) || 500,
+  BASE_ENERGY_REGEN: parseFloat(process.env.BASE_ENERGY_REGEN) || 0.5,
   BASE_CRITICAL_CHANCE: parseFloat(process.env.CRITICAL_BASE_CHANCE) || 0.05,
   BASE_COMBO_MULTIPLIER: 1,
   BASE_AUTO_MINER_RATE: 0,
@@ -30,7 +30,7 @@ module.exports = {
       description: 'Increase energy capacity',
       basePrice: 150,
       priceMultiplier: 1.6,
-      effect: (level) => level * 100,
+      effect: (level) => level * 50, // Reduced from 100 to 50
       maxLevel: 100
     },
     energyRegen: {
@@ -39,7 +39,7 @@ module.exports = {
       description: 'Faster energy recovery',
       basePrice: 200,
       priceMultiplier: 1.7,
-      effect: (level) => level * 0.5,
+      effect: (level) => level * 0.3, // Reduced from 0.5 to 0.3
       maxLevel: 100
     },
     criticalChance: {
