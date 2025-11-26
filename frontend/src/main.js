@@ -15,6 +15,14 @@ let comboCount = 0;
 let critCount = 0;
 let energyRegenInterval = null;
 
+// Cache for data
+let dataCache = {
+  upgrades: null,
+  tasks: null,
+  referrals: null,
+  lastUpdate: {}
+};
+
 // Initialize
 async function init() {
   try {
@@ -64,29 +72,37 @@ async function init() {
     
     console.log('✅ Authentication successful');
     
-    // Update UI
+    // Update UI immediately with auth data
     updateUI();
     
-    // Load initial data
-    console.log('📥 Loading game data...');
-    await loadProfile();
-    await loadUpgrades();
-    await loadTasks();
-    
-    // Start energy regeneration
+    // Start energy regeneration immediately
     startEnergyRegen();
     
-    // Setup tap handler
+    // Setup tap handler immediately
     setupTapHandler();
     
-    // Start periodic sync (every 10 seconds)
+    // Start periodic sync
     startPeriodicSync();
     
-    console.log('✅ App initialized successfully');
+    console.log('✅ App ready - loading data in background...');
+    
+    // Load data in background (non-blocking)
+    // This makes the app feel instant!
+    Promise.all([
+      loadProfile(),
+      loadUpgrades(),
+      loadTasks()
+    ]).then(() => {
+      console.log('✅ All data loaded');
+    }).catch(error => {
+      console.error('Error loading data:', error);
+    });
     
     // Check for offline earnings
     if (data.user.offlineEarnings > 0) {
-      showNotification(`💰 Earned ${data.user.offlineEarnings} coins while offline!`);
+      setTimeout(() => {
+        showNotification(`💰 Earned ${data.user.offlineEarnings} coins while offline!`);
+      }, 1000);
     }
     
   } catch (error) {
@@ -306,19 +322,40 @@ function startEnergyRegen() {
   }, 1000); // Changed from 100ms to 1000ms (1 second)
 }
 
-// Load Upgrades - Organized by category
-async function loadUpgrades() {
+// Load Upgrades - Optimized with caching
+async function loadUpgrades(forceRefresh = false) {
   try {
+    // Check cache (valid for 30 seconds)
+    const cacheAge = Date.now() - (dataCache.lastUpdate.upgrades || 0);
+    if (!forceRefresh && dataCache.upgrades && cacheAge < 30000) {
+      console.log('📦 Using cached upgrades');
+      renderUpgrades(dataCache.upgrades);
+      return;
+    }
+    
     const data = await apiCall('/user/upgrades');
     
-    const upgradesList = document.getElementById('upgradesList');
-    upgradesList.innerHTML = '';
+    // Update cache
+    dataCache.upgrades = data.upgrades;
+    dataCache.lastUpdate.upgrades = Date.now();
     
-    // Group upgrades by priority/importance
-    const priorityOrder = ['tapPower', 'maxEnergy', 'energyRegen', 'criticalChance', 'comboMultiplier', 'autoMiner', 'streakBoost', 'offlineEarnings'];
-    const sortedUpgrades = data.upgrades.sort((a, b) => {
-      return priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id);
-    });
+    renderUpgrades(data.upgrades);
+    
+  } catch (error) {
+    console.error('Load upgrades error:', error);
+  }
+}
+
+// Render Upgrades - Separated for reusability
+function renderUpgrades(upgrades) {
+  const upgradesList = document.getElementById('upgradesList');
+  upgradesList.innerHTML = '';
+  
+  // Group upgrades by priority/importance
+  const priorityOrder = ['tapPower', 'maxEnergy', 'energyRegen', 'criticalChance', 'comboMultiplier', 'autoMiner', 'streakBoost', 'offlineEarnings'];
+  const sortedUpgrades = upgrades.sort((a, b) => {
+    return priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id);
+  });
     
     sortedUpgrades.forEach(upgrade => {
       const card = document.createElement('div');
@@ -388,13 +425,9 @@ async function loadUpgrades() {
       
       upgradesList.appendChild(card);
     });
-    
-  } catch (error) {
-    console.error('Load upgrades error:', error);
-  }
 }
 
-// Buy Upgrade - No popup, just smooth update
+// Buy Upgrade - Fast and smooth
 async function buyUpgrade(upgradeId) {
   try {
     const data = await apiCall('/user/upgrade', 'POST', { upgradeId });
@@ -410,7 +443,9 @@ async function buyUpgrade(upgradeId) {
     }
     
     updateUI();
-    await loadUpgrades();
+    
+    // Force refresh upgrades (invalidate cache)
+    await loadUpgrades(true);
     
     // Just haptic feedback, no popup
     tg.HapticFeedback.notificationOccurred('success');
@@ -419,15 +454,22 @@ async function buyUpgrade(upgradeId) {
     
   } catch (error) {
     tg.HapticFeedback.notificationOccurred('error');
-    // Only show error if something went wrong
     console.error('Upgrade error:', error);
     showNotification(`❌ ${error.message}`);
   }
 }
 
-// Load Tasks - With perfect logic
-async function loadTasks() {
+// Load Tasks - Optimized with caching
+async function loadTasks(forceRefresh = false) {
   try {
+    // Check cache (valid for 60 seconds)
+    const cacheAge = Date.now() - (dataCache.lastUpdate.tasks || 0);
+    if (!forceRefresh && dataCache.tasks && cacheAge < 60000) {
+      console.log('📦 Using cached tasks');
+      renderTasks(dataCache.tasks);
+      return;
+    }
+    
     console.log('📋 Loading tasks...');
     const data = await apiCall('/tasks/list');
     
@@ -436,7 +478,23 @@ async function loadTasks() {
       return;
     }
     
+    // Update cache
+    dataCache.tasks = data.tasks;
+    dataCache.lastUpdate.tasks = Date.now();
+    
     console.log(`✅ Loaded ${data.tasks.length} tasks`);
+    
+    renderTasks(data.tasks);
+    
+  } catch (error) {
+    console.error('❌ Load tasks error:', error);
+    showNotification('Failed to load tasks');
+  }
+}
+
+// Render Tasks - Separated for reusability
+function renderTasks(tasks) {
+  try {
     
     const tasksList = document.getElementById('tasksList');
     tasksList.innerHTML = '';
@@ -520,11 +578,10 @@ async function loadTasks() {
       tasksList.appendChild(card);
     });
     
-    console.log('✅ Tasks loaded successfully');
+    console.log('✅ Tasks rendered successfully');
     
   } catch (error) {
-    console.error('❌ Load tasks error:', error);
-    showNotification('Failed to load tasks');
+    console.error('❌ Render tasks error:', error);
   }
 }
 
@@ -642,8 +699,8 @@ async function completeTask(taskId) {
     // Update UI
     updateUI();
     
-    // Reload tasks to show updated status
-    await loadTasks();
+    // Reload tasks to show updated status (force refresh)
+    await loadTasks(true);
     
     // Show success with haptic feedback
     tg.HapticFeedback.notificationOccurred('success');
@@ -659,9 +716,9 @@ async function completeTask(taskId) {
     const errorMsg = error.message || 'Failed to complete task';
     showNotification(`❌ ${errorMsg}`);
     
-    // Reload tasks to ensure UI is in sync
+    // Reload tasks to ensure UI is in sync (force refresh)
     try {
-      await loadTasks();
+      await loadTasks(true);
     } catch (reloadError) {
       console.error('Failed to reload tasks:', reloadError);
     }
