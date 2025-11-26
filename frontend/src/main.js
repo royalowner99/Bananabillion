@@ -286,18 +286,18 @@ async function loadUpgrades() {
       const canAfford = upgrade.canAfford && !upgrade.isMaxed;
       
       card.innerHTML = `
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center gap-4">
           <div class="flex-1">
-            <div class="font-bold">${upgrade.name}</div>
-            <div class="text-sm opacity-75">${upgrade.description}</div>
-            <div class="text-xs mt-1">Level: ${upgrade.currentLevel}/${upgrade.maxLevel}</div>
+            <div class="font-bold text-lg mb-1">${upgrade.name}</div>
+            <div class="text-sm opacity-75 mb-2">${upgrade.description}</div>
+            <div class="text-xs opacity-60">Level: ${upgrade.currentLevel}/${upgrade.maxLevel}</div>
           </div>
           <button 
             onclick="buyUpgrade('${upgrade.id}')"
-            class="py-2 px-4 rounded-lg font-bold ${canAfford ? 'bg-yellow-500 text-black' : 'bg-gray-600 opacity-50'}"
+            class="${canAfford ? 'btn-primary' : 'btn-primary btn-disabled'} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap"
             ${!canAfford ? 'disabled' : ''}
           >
-            ${upgrade.isMaxed ? 'MAX' : formatNumber(upgrade.price)}
+            ${upgrade.isMaxed ? '✅ MAX' : '💰 ' + formatNumber(upgrade.price)}
           </button>
         </div>
       `;
@@ -360,21 +360,26 @@ async function loadTasks() {
         buttonText = `${hours}h ${minutes}m`;
       }
       
+      card.className = 'task-card rounded-2xl p-4';
+      
       card.innerHTML = `
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center gap-4">
           <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <span class="text-2xl">${task.icon}</span>
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-4xl">${task.icon}</span>
               <div>
-                <div class="font-bold">${task.title}</div>
+                <div class="font-bold text-lg">${task.title}</div>
                 <div class="text-sm opacity-75">${task.description}</div>
-                <div class="text-yellow-400 text-sm mt-1">+${task.reward} coins</div>
               </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-yellow-400 font-bold glow">+${task.reward}</span>
+              <span class="text-xs opacity-75">coins</span>
             </div>
           </div>
           <button 
             onclick="completeTask('${task.taskId}')"
-            class="py-2 px-4 rounded-lg font-bold ${canComplete ? 'bg-yellow-500 text-black' : 'bg-gray-600 opacity-50'}"
+            class="${canComplete ? 'btn-primary' : 'btn-primary btn-disabled'} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap"
             ${!canComplete ? 'disabled' : ''}
           >
             ${buttonText}
@@ -447,19 +452,23 @@ async function loadLeaderboard(type) {
     
     data.leaderboard.forEach(user => {
       const card = document.createElement('div');
-      card.className = 'upgrade-card rounded-lg p-3 flex justify-between items-center';
+      card.className = 'upgrade-card rounded-2xl p-4 flex justify-between items-center';
       
       const medal = user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : user.rank === 3 ? '🥉' : `${user.rank}.`;
+      const isTopThree = user.rank <= 3;
       
       card.innerHTML = `
-        <div class="flex items-center gap-3">
-          <div class="text-2xl">${medal}</div>
-          <div>
-            <div class="font-bold">${user.username}</div>
+        <div class="flex items-center gap-4 flex-1">
+          <div class="text-4xl ${isTopThree ? 'glow' : ''}">${medal}</div>
+          <div class="flex-1">
+            <div class="font-bold text-lg ${isTopThree ? 'glow' : ''}">${user.username}</div>
             <div class="text-sm opacity-75">${formatNumber(user.totalEarned)} coins</div>
           </div>
         </div>
-        <div class="text-sm opacity-75">👥 ${user.referralCount}</div>
+        <div class="text-right">
+          <div class="text-xs opacity-75">Referrals</div>
+          <div class="font-bold">${user.referralCount}</div>
+        </div>
       `;
       
       leaderboardList.appendChild(card);
