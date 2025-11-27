@@ -1661,3 +1661,331 @@ window.addEventListener('beforeunload', () => {
     clearInterval(syncInterval);
   }
 });
+
+
+// ============================================
+// ADMIN TASK MANAGEMENT
+// ============================================
+
+// Create new task
+async function adminCreateTask() {
+  try {
+    if (!isAdmin()) return;
+    
+    const taskId = document.getElementById('taskId').value.trim();
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDesc').value.trim();
+    const reward = parseInt(document.getElementById('taskReward').value);
+    const icon = document.getElementById('taskIcon').value.trim() || '🎯';
+    const link = document.getElementById('taskLink').value.trim();
+    const type = document.getElementById('taskType').value;
+    
+    if (!taskId || !title || !description || !reward) {
+      showNotification('❌ Fill all required fields');
+      return;
+    }
+    
+    await apiCall('/admin/tasks/create', 'POST', {
+      taskId,
+      title,
+      description,
+      reward,
+      icon,
+      link,
+      type
+    });
+    
+    showNotification('✅ Task created!');
+    
+    // Clear form
+    document.getElementById('taskId').value = '';
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDesc').value = '';
+    document.getElementById('taskReward').value = '';
+    document.getElementById('taskIcon').value = '';
+    document.getElementById('taskLink').value = '';
+    
+    // Refresh task list
+    adminLoadTasks();
+    
+  } catch (error) {
+    console.error('Create task error:', error);
+    showNotification('❌ Failed to create task: ' + error.message);
+  }
+}
+
+// Load admin tasks
+async function adminLoadTasks() {
+  try {
+    if (!isAdmin()) return;
+    
+    const data = await apiCall('/admin/tasks/list');
+    
+    const tasksList = document.getElementById('adminTasksList');
+    tasksList.innerHTML = '';
+    
+    if (data.tasks && data.tasks.length > 0) {
+      data.tasks.forEach(task => {
+        const taskDiv = document.createElement('div');
+        taskDiv.className = 'bg-black bg-opacity-30 rounded p-2 text-xs';
+        taskDiv.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div class="flex-1">
+              <div class="font-bold">${task.icon} ${task.title}</div>
+              <div class="opacity-75">${task.reward} coins • ${task.type}</div>
+            </div>
+            <button onclick="adminDeleteTask('${task.taskId}')" class="bg-red-500 bg-opacity-80 px-2 py-1 rounded text-xs">🗑️</button>
+          </div>
+        `;
+        tasksList.appendChild(taskDiv);
+      });
+    } else {
+      tasksList.innerHTML = '<div class="text-xs opacity-75 text-center py-2">No tasks yet</div>';
+    }
+    
+  } catch (error) {
+    console.error('Load admin tasks error:', error);
+  }
+}
+
+// Delete task
+async function adminDeleteTask(taskId) {
+  try {
+    if (!isAdmin()) return;
+    
+    const confirmed = confirm(`Delete task: ${taskId}?`);
+    if (!confirmed) return;
+    
+    await apiCall('/admin/tasks/delete', 'POST', { taskId });
+    
+    showNotification('✅ Task deleted');
+    adminLoadTasks();
+    
+  } catch (error) {
+    console.error('Delete task error:', error);
+    showNotification('❌ Failed to delete task');
+  }
+}
+
+
+// ============================================
+// ADMIN TASK MANAGEMENT - ENHANCED
+// ============================================
+
+// Create new task
+async function adminCreateTask() {
+  const taskId = document.getElementById('taskId').value.trim();
+  const title = document.getElementById('taskTitle').value.trim();
+  const desc = document.getElementById('taskDesc').value.trim();
+  const reward = parseInt(document.getElementById('taskReward').value);
+  const icon = document.getElementById('taskIcon').value.trim() || '🎯';
+  const link = document.getElementById('taskLink').value.trim();
+  const type = document.getElementById('taskType').value;
+  
+  if (!taskId || !title || !desc || !reward) {
+    showNotification('❌ Please fill all required fields', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/api/task/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        taskId,
+        title,
+        description: desc,
+        reward,
+        icon,
+        link,
+        type
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showNotification('✅ Task created successfully!', 'success');
+      
+      // Clear form
+      document.getElementById('taskId').value = '';
+      document.getElementById('taskTitle').value = '';
+      document.getElementById('taskDesc').value = '';
+      document.getElementById('taskReward').value = '';
+      document.getElementById('taskIcon').value = '';
+      document.getElementById('taskLink').value = '';
+      
+      // Reload tasks
+      adminLoadTasks();
+    } else {
+      showNotification(`❌ ${data.error}`, 'error');
+    }
+  } catch (error) {
+    console.error('Create task error:', error);
+    showNotification('❌ Failed to create task', 'error');
+  }
+}
+
+// Delete task
+async function adminDeleteTask(taskId) {
+  if (!confirm(`Delete task "${taskId}"?`)) return;
+  
+  try {
+    const response = await fetch(`${API_URL}/api/task/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ taskId })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      showNotification('✅ Task deleted!', 'success');
+      adminLoadTasks();
+    } else {
+      showNotification(`❌ ${data.error}`, 'error');
+    }
+  } catch (error) {
+    console.error('Delete task error:', error);
+    showNotification('❌ Failed to delete task', 'error');
+  }
+}
+
+// Load all tasks for admin
+async function adminLoadTasks() {
+  if (!isAdmin()) return;
+  
+  try {
+    const response = await fetch(`${API_URL}/api/task/all`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      const tasksList = document.getElementById('adminTasksList');
+      
+      if (data.tasks.length === 0) {
+        tasksList.innerHTML = '<div class="text-center text-white text-opacity-50 py-4">No tasks yet</div>';
+        return;
+      }
+      
+      tasksList.innerHTML = data.tasks.map(task => `
+        <div class="bg-black bg-opacity-30 rounded-lg p-3 border border-white border-opacity-10">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${task.icon}</span>
+              <div>
+                <div class="font-bold text-sm">${task.title}</div>
+                <div class="text-xs text-white text-opacity-50">${task.taskId}</div>
+              </div>
+            </div>
+            <button onclick="adminDeleteTask('${task.taskId}')" class="text-red-400 hover:text-red-300 text-xl">🗑️</button>
+          </div>
+          <div class="text-xs text-white text-opacity-70 mb-1">${task.description}</div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-yellow-400">💰 ${task.reward}</span>
+            <span class="text-white text-opacity-50">${task.type}</span>
+          </div>
+          ${task.link ? `<div class="text-xs text-blue-400 mt-1 truncate">🔗 ${task.link}</div>` : ''}
+        </div>
+      `).join('');
+    }
+  } catch (error) {
+    console.error('Load admin tasks error:', error);
+  }
+}
+
+// ============================================
+// TASK VERIFICATION SYSTEM
+// ============================================
+
+// Verify task before completion
+async function verifyAndCompleteTask(taskId) {
+  try {
+    // First verify the task
+    const verifyResponse = await fetch(`${API_URL}/api/task/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ taskId })
+    });
+    
+    const verifyData = await verifyResponse.json();
+    
+    if (!verifyResponse.ok) {
+      showNotification(`❌ ${verifyData.error}`, 'error');
+      return;
+    }
+    
+    // Show verification result
+    if (verifyData.verified) {
+      showNotification(`✅ ${verifyData.message}`, 'success');
+      
+      // Now complete the task
+      const completeResponse = await fetch(`${API_URL}/api/task/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ 
+          taskId,
+          verification: { confirmed: true }
+        })
+      });
+      
+      const completeData = await completeResponse.json();
+      
+      if (completeResponse.ok) {
+        gameState.balance = completeData.balance;
+        updateUI();
+        loadTasks();
+        showNotification(`🎉 +${completeData.reward} coins!`, 'success');
+        tg.HapticFeedback.notificationOccurred('success');
+      } else {
+        showNotification(`❌ ${completeData.error}`, 'error');
+      }
+    } else {
+      showNotification(`❌ ${verifyData.message}`, 'error');
+      tg.HapticFeedback.notificationOccurred('error');
+    }
+    
+  } catch (error) {
+    console.error('Verify and complete task error:', error);
+    showNotification('❌ Verification failed', 'error');
+  }
+}
+
+// Update the existing completeTask function to use verification
+const originalCompleteTask = window.completeTask;
+window.completeTask = async function(taskId, taskLink) {
+  // If task has a link, open it first
+  if (taskLink) {
+    if (taskLink.includes('t.me')) {
+      tg.openTelegramLink(taskLink);
+    } else {
+      tg.openLink(taskLink);
+    }
+    
+    // Show verification button after opening link
+    setTimeout(() => {
+      if (confirm('Have you completed this task? Click OK to verify.')) {
+        verifyAndCompleteTask(taskId);
+      }
+    }, 2000);
+  } else {
+    // No link, complete directly
+    verifyAndCompleteTask(taskId);
+  }
+};

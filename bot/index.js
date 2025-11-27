@@ -775,6 +775,53 @@ bot.command('broadcast', async (ctx) => {
   }
 });
 
+// ============================================
+// SOCIAL MEDIA VERIFICATION
+// ============================================
+
+// Check if user is member of Telegram channel/group
+async function checkTelegramMembership(userId, channelUsername) {
+  try {
+    const member = await bot.telegram.getChatMember(channelUsername, userId);
+    return ['creator', 'administrator', 'member'].includes(member.status);
+  } catch (error) {
+    console.error('Check membership error:', error);
+    return false;
+  }
+}
+
+// Verify social media task endpoint (called from backend)
+bot.command('verifytask', async (ctx) => {
+  try {
+    const userId = ctx.from.id.toString();
+    const args = ctx.message.text.split(' ');
+    
+    if (args.length < 2) {
+      return ctx.reply('Usage: /verifytask <task_id>');
+    }
+    
+    const taskId = args[1];
+    
+    // Check based on task type
+    if (taskId.includes('telegram') || taskId.includes('join')) {
+      const channelUsername = process.env.TELEGRAM_CHANNEL || '@your_channel';
+      const isMember = await checkTelegramMembership(userId, channelUsername);
+      
+      if (isMember) {
+        await ctx.reply('✅ Verified! You are a member of our channel.');
+      } else {
+        await ctx.reply('❌ Not verified. Please join our channel first.');
+      }
+    } else {
+      await ctx.reply('⚠️ This task type cannot be auto-verified. Please complete it manually.');
+    }
+    
+  } catch (error) {
+    console.error('Verify task error:', error);
+    ctx.reply('❌ Verification failed.');
+  }
+});
+
 // Error handling
 bot.catch((err, ctx) => {
   console.error('Bot error:', err);

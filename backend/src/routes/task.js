@@ -9,6 +9,9 @@ router.use(checkBanned);
 
 router.get('/list', apiLimiter, taskController.getTasks);
 router.post('/complete', apiLimiter, taskController.completeTask);
+router.post('/verify', apiLimiter, taskController.verifyTask);
 router.post('/create', verifyAdmin, taskController.createTask);
+router.post('/delete', verifyAdmin, taskController.deleteTask);
+router.get('/all', verifyAdmin, taskController.getAllTasks);
 
 module.exports = router;

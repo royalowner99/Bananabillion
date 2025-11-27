@@ -14,4 +14,10 @@ router.post('/unban', apiLimiter, adminController.unbanUser);
 router.post('/balance', apiLimiter, adminController.editBalance);
 router.post('/broadcast', apiLimiter, adminController.broadcast);
 
+// Task management
+router.post('/tasks/create', apiLimiter, adminController.createTask);
+router.post('/tasks/update', apiLimiter, adminController.updateTask);
+router.post('/tasks/delete', apiLimiter, adminController.deleteTask);
+router.get('/tasks/list', apiLimiter, adminController.listTasks);
+
 module.exports = router;

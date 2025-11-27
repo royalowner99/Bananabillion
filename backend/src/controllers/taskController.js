@@ -181,3 +181,116 @@ exports.createTask = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+exports.deleteTask = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    
+    if (!taskId) {
+      return res.status(400).json({ error: 'Task ID required' });
+    }
+    
+    const task = await Task.findOneAndDelete({ taskId });
+    
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    // Also delete all user task records for this task
+    await UserTask.deleteMany({ taskId });
+    
+    res.json({ message: 'Task deleted successfully' });
+    
+  } catch (error) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.verifyTask = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    const axios = require('axios');
+    
+    if (!taskId) {
+      return res.status(400).json({ error: 'Task ID required' });
+    }
+    
+    const task = await Task.findOne({ taskId, isActive: true });
+    
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    const user = await User.findOne({ userId: req.userId });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    let verified = false;
+    let message = 'Verification failed';
+    
+    // Verify based on task type
+    if (task.link && task.link.includes('t.me')) {
+      // Telegram verification
+      try {
+        const botToken = process.env.BOT_TOKEN;
+        const channelUsername = task.link.split('t.me/')[1];
+        
+        const response = await axios.get(
+          `https://api.telegram.org/bot${botToken}/getChatMember`,
+          {
+            params: {
+              chat_id: `@${channelUsername}`,
+              user_id: req.userId
+            }
+          }
+        );
+        
+        if (response.data.ok) {
+          const status = response.data.result.status;
+          verified = ['creator', 'administrator', 'member'].includes(status);
+          message = verified ? 'Telegram membership verified!' : 'You are not a member of the channel';
+        }
+      } catch (error) {
+        console.error('Telegram verification error:', error);
+        message = 'Could not verify Telegram membership';
+      }
+    } else if (task.link && task.link.includes('youtube.com')) {
+      // YouTube verification (requires YouTube API key)
+      // For now, we'll use manual verification
+      verified = true;
+      message = 'Please confirm you subscribed to the channel';
+    } else if (task.link && task.link.includes('twitter.com')) {
+      // Twitter verification (requires Twitter API)
+      // For now, we'll use manual verification
+      verified = true;
+      message = 'Please confirm you followed the account';
+    } else {
+      // Generic task - manual verification
+      verified = true;
+      message = 'Task marked for verification';
+    }
+    
+    res.json({ 
+      verified,
+      message,
+      taskId: task.taskId
+    });
+    
+  } catch (error) {
+    console.error('Verify task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.getAllTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find().sort({ createdAt: -1 });
+    res.json({ tasks });
+  } catch (error) {
+    console.error('Get all tasks error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

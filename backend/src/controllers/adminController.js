@@ -167,3 +167,96 @@ exports.broadcast = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+
+// Task Management
+exports.createTask = async (req, res) => {
+  try {
+    const { Task } = require('../models/Task');
+    const { taskId, title, description, reward, type, icon, link, cooldownSeconds } = req.body;
+    
+    if (!taskId || !title || !description || !reward) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const task = new Task({
+      taskId,
+      title,
+      description,
+      reward,
+      type: type || 'one-time',
+      icon: icon || '🎯',
+      link: link || null,
+      cooldownSeconds: cooldownSeconds || 0,
+      isActive: true
+    });
+    
+    await task.save();
+    
+    res.json({ success: true, task });
+    
+  } catch (error) {
+    console.error('Create task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.updateTask = async (req, res) => {
+  try {
+    const { Task } = require('../models/Task');
+    const { taskId, updates } = req.body;
+    
+    if (!taskId) {
+      return res.status(400).json({ error: 'Task ID required' });
+    }
+    
+    const task = await Task.findOneAndUpdate(
+      { taskId },
+      updates,
+      { new: true }
+    );
+    
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    res.json({ success: true, task });
+    
+  } catch (error) {
+    console.error('Update task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.deleteTask = async (req, res) => {
+  try {
+    const { Task } = require('../models/Task');
+    const { taskId } = req.body;
+    
+    if (!taskId) {
+      return res.status(400).json({ error: 'Task ID required' });
+    }
+    
+    await Task.deleteOne({ taskId });
+    
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.listTasks = async (req, res) => {
+  try {
+    const { Task } = require('../models/Task');
+    
+    const tasks = await Task.find().sort({ order: 1, createdAt: -1 });
+    
+    res.json({ tasks });
+    
+  } catch (error) {
+    console.error('List tasks error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
