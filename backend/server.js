@@ -7,14 +7,24 @@ const { initializeDefaultBoosters } = require('./src/controllers/boosterControll
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to database
-connectDB();
-
-// Initialize cron jobs
-initializeCronJobs();
-
-// Initialize default boosters
-initializeDefaultBoosters();
+// Connect to database and initialize
+async function initialize() {
+  try {
+    await connectDB();
+    console.log('✅ Database connected');
+    
+    // Initialize cron jobs
+    initializeCronJobs();
+    
+    // Initialize default boosters
+    await initializeDefaultBoosters();
+    
+    // Initialize default tasks
+    await initializeTasks();
+  } catch (error) {
+    console.error('❌ Initialization error:', error);
+  }
+}
 
 // Initialize default tasks
 async function initializeTasks() {
@@ -79,8 +89,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
   
-  // Initialize tasks after server starts
-  initializeTasks();
+  // Initialize everything after server starts
+  initialize();
 });
 
 // Graceful shutdown
