@@ -658,6 +658,8 @@ async function buyUpgrade(upgradeId) {
 // Load Tasks - Optimized with caching
 async function loadTasks(forceRefresh = false) {
   try {
+    console.log('🎯 loadTasks called, forceRefresh:', forceRefresh);
+    
     // Check cache (valid for 60 seconds)
     const cacheAge = Date.now() - (dataCache.lastUpdate.tasks || 0);
     if (!forceRefresh && dataCache.tasks && cacheAge < 60000) {
@@ -666,11 +668,20 @@ async function loadTasks(forceRefresh = false) {
       return;
     }
     
-    console.log('📋 Loading tasks...');
+    console.log('📋 Loading tasks from API...');
     const data = await apiCall('/tasks/list');
     
-    if (!data || !data.tasks) {
-      console.error('❌ No tasks data received');
+    console.log('📡 API response:', data);
+    
+    if (!data) {
+      console.error('❌ No data received from API');
+      showNotification('Failed to load tasks - no data');
+      return;
+    }
+    
+    if (!data.tasks) {
+      console.error('❌ No tasks array in response:', data);
+      showNotification('Failed to load tasks - no tasks array');
       return;
     }
     
@@ -684,7 +695,8 @@ async function loadTasks(forceRefresh = false) {
     
   } catch (error) {
     console.error('❌ Load tasks error:', error);
-    showNotification('Failed to load tasks');
+    console.error('Error stack:', error.stack);
+    showNotification('Failed to load tasks: ' + error.message);
   }
 }
 
@@ -861,14 +873,31 @@ function renderTasks(tasks) {
           <div class="text-6xl mb-4">🎯</div>
           <div class="text-xl font-bold mb-2">No Tasks Available</div>
           <div class="text-sm">Check back later for new tasks!</div>
+          <button onclick="loadTasks(true)" class="btn-primary mt-4 py-2 px-6 rounded-xl">
+            🔄 Refresh Tasks
+          </button>
         </div>
       `;
     }
     
-    console.log('✅ Tasks rendered successfully');
+    console.log('✅ Tasks rendered successfully:', tasks.length, 'tasks');
     
   } catch (error) {
     console.error('❌ Render tasks error:', error);
+    console.error('Error stack:', error.stack);
+    const tasksList = document.getElementById('tasksList');
+    if (tasksList) {
+      tasksList.innerHTML = `
+        <div class="text-center py-12">
+          <div class="text-6xl mb-4">❌</div>
+          <div class="text-xl font-bold mb-2 text-red-400">Error Loading Tasks</div>
+          <div class="text-sm opacity-75 mb-4">${error.message}</div>
+          <button onclick="loadTasks(true)" class="btn-primary py-2 px-6 rounded-xl">
+            🔄 Try Again
+          </button>
+        </div>
+      `;
+    }
   }
 }
 
