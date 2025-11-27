@@ -1298,6 +1298,8 @@ function switchTab(tab, event) {
     loadProfileData();
   } else if (tab === 'withdraw') {
     loadWithdrawalHistory();
+  } else if (tab === 'achievements') {
+    loadAchievements();
   } else if (tab === 'admin') {
     if (isAdmin()) {
       loadAdminStats();
@@ -1800,6 +1802,164 @@ async function requestWithdrawal() {
     showNotification('❌ Request failed');
     tg.HapticFeedback.notificationOccurred('error');
   }
+}
+
+// ============================================
+// ACHIEVEMENTS SYSTEM
+// ============================================
+
+// Load achievements
+async function loadAchievements() {
+  try {
+    const res = await fetch(`${API_URL}/tasks/list`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    
+    if (!data || !data.tasks) return;
+    
+    // Filter achievements
+    const achievements = data.tasks.filter(t => t.category === 'achievement');
+    
+    // Calculate stats
+    const completed = achievements.filter(a => a.status === 'completed').length;
+    const badges = achievements.filter(a => a.status === 'completed' && a.badge).length;
+    const totalRewards = achievements
+      .filter(a => a.status === 'completed')
+      .reduce((sum, a) => sum + a.reward, 0);
+    
+    // Update stats
+    document.getElementById('achievementsCompleted').textContent = completed;
+    document.getElementById('badgesEarned').textContent = badges;
+    document.getElementById('achievementRewards').textContent = formatNumber(totalRewards);
+    
+    // Display badges
+    const badgesList = document.getElementById('badgesList');
+    const earnedBadges = achievements.filter(a => a.status === 'completed' && a.badge);
+    
+    if (earnedBadges.length > 0) {
+      badgesList.innerHTML = '';
+      earnedBadges.forEach(achievement => {
+        const badge = document.createElement('div');
+        badge.className = 'bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg p-3 text-center';
+        badge.innerHTML = `
+          <div class="text-2xl mb-1">${achievement.icon}</div>
+          <div class="text-xs font-bold">${achievement.badge}</div>
+        `;
+        badgesList.appendChild(badge);
+      });
+    }
+    
+    // Render achievements
+    renderAchievements(achievements, 'all');
+    
+  } catch (error) {
+    console.error('Load achievements error:', error);
+  }
+}
+
+// Render achievements
+function renderAchievements(achievements, filter) {
+  const achievementsList = document.getElementById('achievementsList');
+  achievementsList.innerHTML = '';
+  
+  // Filter by category
+  let filtered = achievements;
+  if (filter !== 'all') {
+    const filterMap = {
+      'tapping': ['baby_banana', 'monkey_mode', 'jungle_king', 'planet_banana', 'galaxy_banana'],
+      'power': ['power_rookie', 'power_master', 'power_legend'],
+      'referral': ['banana_promoter', 'banana_ambassador', 'banana_minister', 'banana_president'],
+      'activity': ['week_warrior', 'month_master', 'century_champion']
+    };
+    filtered = achievements.filter(a => filterMap[filter]?.includes(a.taskId));
+  }
+  
+  // Sort: incomplete first, then by reward
+  filtered.sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    return b.reward - a.reward;
+  });
+  
+  filtered.forEach(achievement => {
+    const card = document.createElement('div');
+    const isCompleted = achievement.status === 'completed';
+    
+    card.className = `upgrade-card rounded-2xl p-4 ${isCompleted ? 'opacity-70 border-2 border-green-500' : ''}`;
+    
+    // Progress calculation
+    let progress = 0;
+    let progressText = '';
+    if (achievement.requirement) {
+      const req = achievement.requirement;
+      if (req.type === 'totalTaps') {
+        progress = Math.min((userData.totalTaps || 0) / req.count * 100, 100);
+        progressText = `${formatNumber(userData.totalTaps || 0)} / ${formatNumber(req.count)}`;
+      } else if (req.type === 'referrals') {
+        progress = Math.min((userData.referralCount || 0) / req.count * 100, 100);
+        progressText = `${userData.referralCount || 0} / ${req.count}`;
+      } else if (req.type === 'upgradeLevel') {
+        const currentLevel = userData.upgrades?.[req.upgrade] || 0;
+        progress = Math.min(currentLevel / req.level * 100, 100);
+        progressText = `Level ${currentLevel} / ${req.level}`;
+      } else if (req.type === 'loginStreak') {
+        progress = Math.min((userData.dailyStreak || 0) / req.days * 100, 100);
+        progressText = `${userData.dailyStreak || 0} / ${req.days} days`;
+      }
+    }
+    
+    card.innerHTML = `
+      <div class="flex items-center gap-4">
+        <div class="text-5xl ${isCompleted ? '' : 'grayscale'}">${achievement.icon}</div>
+        <div class="flex-1">
+          <div class="font-bold text-lg mb-1">${achievement.title}</div>
+          <div class="text-sm opacity-75 mb-2">${achievement.description}</div>
+          
+          ${!isCompleted ? `
+            <div class="mb-2">
+              <div class="flex justify-between text-xs mb-1">
+                <span>${progressText}</span>
+                <span>${progress.toFixed(0)}%</span>
+              </div>
+              <div class="w-full bg-black bg-opacity-30 rounded-full h-2 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+              </div>
+            </div>
+          ` : ''}
+          
+          <div class="flex items-center gap-2">
+            <span class="text-yellow-400 font-bold">+${formatNumber(achievement.reward)}</span>
+            ${achievement.badge ? `<span class="text-xs bg-purple-500 bg-opacity-30 px-2 py-1 rounded-full">🎖️ ${achievement.badge}</span>` : ''}
+            ${isCompleted ? '<span class="text-xs bg-green-500 bg-opacity-30 px-2 py-1 rounded-full">✅ Completed</span>' : ''}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    achievementsList.appendChild(card);
+  });
+  
+  if (filtered.length === 0) {
+    achievementsList.innerHTML = '<div class="text-center opacity-50 py-8">No achievements in this category</div>';
+  }
+}
+
+// Filter achievements
+function filterAchievements(filter) {
+  // Update active button
+  document.querySelectorAll('.achievement-filter-btn').forEach(btn => {
+    btn.classList.remove('active', 'bg-opacity-20');
+    btn.classList.add('bg-opacity-10');
+  });
+  event.target.classList.add('active', 'bg-opacity-20');
+  
+  // Reload with filter
+  loadAchievements().then(() => {
+    const achievementsList = document.getElementById('achievementsList');
+    const allAchievements = Array.from(achievementsList.children);
+    // Re-render with filter
+  });
 }
 
 // Load withdrawal history

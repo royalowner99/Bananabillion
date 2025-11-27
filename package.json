@@ -10,7 +10,8 @@
     "admin": "node admin/server.js",
     "test": "node test-server.js",
     "build": "echo 'No build needed - static frontend'",
-    "preview": "vite preview --port 3000"
+    "preview": "vite preview --port 3000",
+    "init-tasks": "node backend/src/scripts/initializeAllTasks.js"
   },
   "keywords": ["telegram", "mini-app", "game"],
   "author": "",

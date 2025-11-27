@@ -21,13 +21,29 @@ const taskSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['daily', 'one-time', 'partner', 'cooldown'],
+    enum: ['daily', 'one-time', 'partner', 'cooldown', 'milestone', 'special'],
     default: 'one-time'
   },
   category: {
     type: String,
     enum: ['social', 'daily', 'special', 'partner', 'achievement'],
     default: 'social'
+  },
+  requirement: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  rewardRange: {
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 0 }
+  },
+  badge: {
+    type: String,
+    default: null
+  },
+  duration: {
+    type: Number,
+    default: 0
   },
   cooldownSeconds: {
     type: Number,
