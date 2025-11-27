@@ -1,0 +1,132 @@
+===========================================
+COPY THESE TO RENDER ENVIRONMENT VARIABLES
+===========================================
+
+Add these one by one in Render Dashboard:
+Settings → Environment → Add Environment Variable
+
+---
+
+MONGODB_URI
+mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/bananabillion?retryWrites=true&w=majority
+
+---
+
+BOT_TOKEN
+YOUR_BOT_TOKEN_FROM_BOTFATHER
+
+---
+
+BOT_USERNAME
+your_bot_username
+
+---
+
+WEBAPP_URL
+https://your-app-name.onrender.com
+
+---
+
+JWT_SECRET
+banana_billion_secret_key_2024_change_this_to_random_string
+
+---
+
+ADMIN_PASSWORD
+your_secure_admin_password_here
+
+---
+
+ADMIN_TELEGRAM_IDS
+YOUR_TELEGRAM_USER_ID
+
+---
+
+NODE_ENV
+production
+
+---
+
+PORT
+3000
+
+---
+
+BASE_TAP_POWER
+1
+
+---
+
+BASE_MAX_ENERGY
+1000
+
+---
+
+BASE_ENERGY_REGEN
+1
+
+---
+
+CRITICAL_BASE_CHANCE
+0.05
+
+---
+
+MAX_TAPS_PER_SECOND
+15
+
+---
+
+COMBO_TIMEOUT_MS
+500
+
+---
+
+BBN_TOTAL_SUPPLY
+100000000
+
+---
+
+BBN_DAILY_MINING_LIMIT
+1500
+
+---
+
+BBN_TO_INR_RATE
+0.00001
+
+---
+
+===========================================
+OPTIONAL (For Razorpay Payments)
+===========================================
+
+RAZORPAY_KEY_ID
+your_razorpay_key_id
+
+---
+
+RAZORPAY_KEY_SECRET
+your_razorpay_secret
+
+---
+
+RAZORPAY_WEBHOOK_SECRET
+your_webhook_secret
+
+---
+
+===========================================
+IMPORTANT NOTES
+===========================================
+
+1. Replace ALL placeholder values with your actual values
+2. MONGODB_URI: Get from MongoDB Atlas
+3. BOT_TOKEN: Get from @BotFather on Telegram
+4. BOT_USERNAME: Your bot's username (without @)
+5. WEBAPP_URL: Your Render app URL (update after first deploy)
+6. ADMIN_TELEGRAM_IDS: Your Telegram user ID from @userinfobot
+7. JWT_SECRET: Change to a random long string
+8. ADMIN_PASSWORD: Use a strong password
+
+===========================================
