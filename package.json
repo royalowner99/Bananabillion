@@ -8,7 +8,9 @@
     "dev": "nodemon backend/server.js",
     "bot": "node bot/index.js",
     "admin": "node admin/server.js",
-    "test": "node test-server.js"
+    "test": "node test-server.js",
+    "build": "npm install && cd frontend && npm install && npm run build",
+    "preview": "vite preview --port 3000"
   },
   "keywords": ["telegram", "mini-app", "game"],
   "author": "",

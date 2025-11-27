@@ -1078,7 +1078,7 @@ async function loadReferralStats() {
 
 // Share Referral - Improved
 function shareReferral() {
-  const botUsername = 'banabillionbot';
+  const botUsername = 'BANANABILLIONBOT';
   const referralLink = `https://t.me/${botUsername}?start=${userData.userId}`;
   const text = `🍌 Join me on BananaBillion!\n\n💰 Tap to earn coins\n🎮 Play mini games\n🎁 Complete tasks\n\n🎁 Use my link and we both get bonuses!\n\n${referralLink}`;
   
@@ -1092,7 +1092,7 @@ function shareReferral() {
 
 // Copy Referral Link
 function copyReferralLink() {
-  const botUsername = 'banabillionbot';
+  const botUsername = 'BANANABILLIONBOT';
   const referralLink = `https://t.me/${botUsername}?start=${userData.userId}`;
   
   // Try to copy to clipboard
@@ -1302,7 +1302,7 @@ function showError(message) {
 // ============================================
 
 // Admin user IDs (from environment)
-const ADMIN_IDS = ['5866442043']; // Your admin Telegram ID
+const ADMIN_IDS = ['1526312302']; // Your admin Telegram ID
 
 // Check if current user is admin
 function isAdmin() {
