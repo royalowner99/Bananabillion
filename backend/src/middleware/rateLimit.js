@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 // General API rate limiter
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 100,
+  max: 200, // Increased for better user experience
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -22,8 +22,8 @@ const tapLimiter = rateLimit({
 // Auth limiter
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
-  message: { error: 'Too many authentication attempts' },
+  max: 100, // Increased for better user experience
+  message: { error: 'Too many authentication attempts, please try again in 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
 });
