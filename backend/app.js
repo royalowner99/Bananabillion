@@ -66,7 +66,9 @@ app.use('/api/minigames', require('./src/routes/miniGame'));
 app.use('/api/lottery', require('./src/routes/lottery'));
 app.use('/api/spin', require('./src/routes/dailySpin'));
 
-// BBN System Routes (with error handling)
+// BBN System Routes (temporarily disabled for deployment)
+// Uncomment these after verifying base deployment works
+/*
 try {
   app.use('/api/payment', require('./src/routes/payment'));
   app.use('/api/booster', require('./src/routes/booster'));
@@ -77,6 +79,8 @@ try {
 } catch (error) {
   console.error('⚠️ BBN routes not loaded:', error.message);
 }
+*/
+console.log('⚠️ BBN routes temporarily disabled for deployment');
 
 // Serve frontend (only for non-API routes)
 app.use(express.static(path.join(__dirname, '../frontend')));
