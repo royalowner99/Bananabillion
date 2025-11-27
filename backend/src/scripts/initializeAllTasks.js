@@ -1,7 +1,7 @@
 // Script to initialize ALL tasks and achievements in the database
 
 const mongoose = require('mongoose');
-const Task = require('../models/Task');
+const { Task } = require('../models/Task');
 const allTasks = require('../config/allTasks');
 require('dotenv').config();
 
