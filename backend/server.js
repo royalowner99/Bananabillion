@@ -2,9 +2,8 @@ require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./src/config/database');
 const { Task } = require('./src/models/Task');
-// Temporarily disabled BBN imports
-// const { initializeCronJobs } = require('./src/utils/cronJobs');
-// const { initializeDefaultBoosters } = require('./src/controllers/boosterController');
+const { initializeCronJobs } = require('./src/utils/cronJobs');
+const { initializeDefaultBoosters } = require('./src/controllers/boosterController');
 
 const PORT = process.env.PORT || 3000;
 
@@ -14,18 +13,19 @@ async function initialize() {
     await connectDB();
     console.log('✅ Database connected');
     
-    // Initialize cron jobs (temporarily disabled)
-    // initializeCronJobs();
-    console.log('⚠️ Cron jobs temporarily disabled');
+    // Initialize cron jobs
+    initializeCronJobs();
+    console.log('✅ Cron jobs initialized');
     
-    // Initialize default boosters (temporarily disabled)
-    // await initializeDefaultBoosters();
-    console.log('⚠️ Default boosters temporarily disabled');
+    // Initialize default boosters
+    await initializeDefaultBoosters();
+    console.log('✅ Default boosters initialized');
     
     // Initialize default tasks
     await initializeTasks();
   } catch (error) {
     console.error('❌ Initialization error:', error);
+    // Server continues even if initialization fails
   }
 }
 
