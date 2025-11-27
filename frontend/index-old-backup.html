@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BananaBillion</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      overflow: hidden;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    #mainContent {
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: 100%;
+    }
+    
+    .banana-btn {
+      transition: transform 0.1s;
+      cursor: pointer;
+      filter: drop-shadow(0 10px 30px rgba(255, 215, 0, 0.4));
+    }
+    
+    .banana-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .header {
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 8px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .energy-bar-container {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .energy-bar {
+      transition: width 0.5s ease;
+      background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+    
+    /* Horizontal Scrollable Navigation */
+    .nav-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    
+    .nav-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .tab-btn {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 80px;
+      padding: 12px 16px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+    
+    .tab-active {
+      background: rgba(255, 215, 0, 0.1);
+      border-bottom-color: #FFD700;
+    }
+    
+    .upgrade-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+      color: #000;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 12px 24px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.95);
+    }
+    
+    .glow {
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+  </style>
+</head>
+<body class="text-white">
+  <div id="app" class="h-screen flex flex-col">
+    <!-- Header -->
+    <div class="header p-4">
+      <div class="flex justify-between items-center gap-3 mb-3">
+        <div class="stat-card flex-1">
+          <div class="text-xs opacity-75 mb-1">💰 Balance</div>
+          <div class="text-2xl font-bold glow" id="balance">0</div>
+        </div>
+        <div class="stat-card flex-1 text-right">
+          <div class="text-xs opacity-75 mb-1">⚡ Energy</div>
+          <div class="text-xl font-bold" id="energy">0/0</div>
+        </div>
+      </div>
+      <div class="energy-bar-container h-4">
+        <div id="energyBar" class="energy-bar h-full" style="width: 100%"></div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="flex-1 overflow-y-auto">
+      <!-- Game Tab -->
+      <div id="gameTab" class="tab-content p-4">
+        <div class="text-center mb-4">
+          <div class="stat-card inline-block px-6 py-2">
+            <div class="text-xs opacity-75">💪 Tap Power</div>
+            <div class="text-2xl font-bold glow" id="tapPower">1</div>
+          </div>
+        </div>
+        
+        <div class="flex justify-center items-center" style="height: 400px;">
+          <button id="bananaBtn" class="banana-btn">
+            <div style="width: 200px; height: 200px; background: linear-gradient(135deg, #FFD700, #FFA500); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 80px; font-weight: bold; color: #000; box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);">
+              TAP
+            </div>
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-3 mt-6">
+          <div class="stat-card text-center p-3">
+            <div class="text-xs opacity-75 mb-1">👆 Taps</div>
+            <div class="font-bold text-lg" id="totalTaps">0</div>
+          </div>
+          <div class="stat-card text-center p-3">
+            <div class="text-xs opacity-75 mb-1">🔥 Combo</div>
+            <div class="font-bold text-lg glow" id="combo">0x</div>
+          </div>
+          <div class="stat-card text-center p-3">
+            <div class="text-xs opacity-75 mb-1">⚡ Crits</div>
+            <div class="font-bold text-lg" id="crits">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other tabs remain the same as clean version -->
+      <div id="upgradesTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">⚡ Upgrades</h2>
+        <div id="upgradesList" class="space-y-4"></div>
+      </div>
+
+      <div id="tasksTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">🎯 Tasks</h2>
+        <div id="tasksList" class="space-y-4"></div>
+      </div>
+
+      <div id="leaderboardTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">🏆 Leaderboard</h2>
+        <div class="flex gap-2 mb-6">
+          <button onclick="loadLeaderboard('daily', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold">Daily</button>
+          <button onclick="loadLeaderboard('weekly', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold">Weekly</button>
+          <button onclick="loadLeaderboard('global', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold">Global</button>
+        </div>
+        <div id="leaderboardList" class="space-y-3"></div>
+      </div>
+
+      <div id="friendsTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">👥 Friends</h2>
+        <div class="upgrade-card p-6 mb-6">
+          <div class="text-center">
+            <div class="text-xl font-bold mb-3">Earn 20% of friends earnings!</div>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+              <div class="stat-card p-3">
+                <div class="text-xs opacity-75 mb-1">👥 Friends</div>
+                <div class="text-2xl font-bold glow" id="referralCount">0</div>
+              </div>
+              <div class="stat-card p-3">
+                <div class="text-xs opacity-75 mb-1">💰 Earned</div>
+                <div class="text-2xl font-bold glow" id="referralEarnings">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <button onclick="shareReferral()" class="btn-primary py-4 rounded-xl">📤 Share</button>
+          <button onclick="copyReferralLink()" class="btn-primary py-4 rounded-xl">📋 Copy</button>
+        </div>
+        <div id="referralsList" class="space-y-3"></div>
+      </div>
+
+      <div id="adminTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">🔐 Admin Panel</h2>
+        <div class="upgrade-card p-4 mb-4">
+          <div class="text-lg font-bold mb-3">📊 Statistics</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="stat-card p-3">
+              <div class="text-xs opacity-75">Total Users</div>
+              <div class="text-xl font-bold" id="adminTotalUsers">-</div>
+            </div>
+            <div class="stat-card p-3">
+              <div class="text-xs opacity-75">Active (24h)</div>
+              <div class="text-xl font-bold" id="adminActiveUsers">-</div>
+            </div>
+            <div class="stat-card p-3">
+              <div class="text-xs opacity-75">Total Coins</div>
+              <div class="text-xl font-bold" id="adminTotalCoins">-</div>
+            </div>
+            <div class="stat-card p-3">
+              <div class="text-xs opacity-75">Total Earned</div>
+              <div class="text-xl font-bold" id="adminTotalTaps">-</div>
+            </div>
+          </div>
+          <button onclick="loadAdminStats()" class="btn-primary w-full mt-3 py-2 rounded-xl">🔄 Refresh</button>
+        </div>
+        
+        <div class="upgrade-card p-4 mb-4">
+          <div class="text-lg font-bold mb-3">👤 User Management</div>
+          <input 
+            type="text" 
+            id="adminSearchUser" 
+            placeholder="Enter User ID or Username"
+            class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white mb-2"
+          />
+          <button onclick="adminFindUser()" class="btn-primary w-full py-2 rounded-xl">🔍 Find</button>
+          
+          <div id="adminUserInfo" class="hidden bg-black bg-opacity-30 rounded-lg p-3 mt-3">
+            <div class="text-sm space-y-2" id="adminUserDetails"></div>
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <button onclick="adminBanUser()" class="bg-red-500 bg-opacity-80 py-2 rounded-lg text-sm font-bold">🚫 Ban</button>
+              <button onclick="adminUnbanUser()" class="bg-green-500 bg-opacity-80 py-2 rounded-lg text-sm font-bold">✅ Unban</button>
+            </div>
+          </div>
+          
+          <input 
+            type="number" 
+            id="adminCoinsAmount" 
+            placeholder="Coins Amount"
+            class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white mt-3"
+          />
+          <button onclick="adminAddCoins()" class="btn-primary w-full mt-2 py-2 rounded-xl">💰 Add Coins</button>
+        </div>
+        
+        <div class="upgrade-card p-4">
+          <div class="text-lg font-bold mb-3">📢 Broadcast</div>
+          <textarea 
+            id="adminBroadcastMsg" 
+            placeholder="Message to all users..."
+            class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white h-24"
+          ></textarea>
+          <button onclick="adminBroadcast()" class="btn-primary w-full mt-2 py-2 rounded-xl">📤 Send</button>
+        </div>
+      </div>
+
+      <div id="profileTab" class="tab-content hidden p-4">
+        <h2 class="text-3xl font-bold mb-6 glow">👤 Profile</h2>
+        <div class="upgrade-card p-6 mb-4">
+          <div class="text-center mb-4">
+            <div class="relative inline-block mb-3">
+              <img id="profilePhoto" src="" alt="Profile" class="w-24 h-24 rounded-full border-4 border-yellow-400 shadow-lg" style="display: none;" onerror="this.style.display='none'; document.getElementById('profilePhotoFallback').style.display='flex';">
+              <div id="profilePhotoFallback" class="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-4xl font-bold text-white border-4 border-yellow-400 shadow-lg mx-auto">
+                <span id="profileInitial">?</span>
+              </div>
+            </div>
+            <div class="text-2xl font-bold glow" id="profileUsername">Loading...</div>
+            <div class="text-sm opacity-75 mt-1" id="profileUserId">ID: ...</div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="stat-card p-3 text-center">
+              <div class="text-xs opacity-75 mb-2">💰 Earned</div>
+              <div class="text-2xl font-bold glow" id="profileTotalEarned">0</div>
+            </div>
+            <div class="stat-card p-3 text-center">
+              <div class="text-xs opacity-75 mb-2">👆 Taps</div>
+              <div class="text-2xl font-bold" id="profileTotalTaps">0</div>
+            </div>
+            <div class="stat-card p-3 text-center">
+              <div class="text-xs opacity-75 mb-2">✅ Tasks</div>
+              <div class="text-2xl font-bold" id="profileTasksCompleted">0</div>
+            </div>
+            <div class="stat-card p-3 text-center">
+              <div class="text-xs opacity-75 mb-2">👥 Friends</div>
+              <div class="text-2xl font-bold" id="profileReferralCount">0</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="upgrade-card p-4 mb-4">
+          <div class="text-lg font-bold mb-3">⚡ Power Stats</div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="opacity-75">💪 Tap Power</span>
+              <span class="font-bold" id="profileTapPower">1</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">🔋 Max Energy</span>
+              <span class="font-bold" id="profileMaxEnergy">500</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">⚡ Energy Regen</span>
+              <span class="font-bold" id="profileEnergyRegen">0.5/s</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">🎯 Critical Chance</span>
+              <span class="font-bold" id="profileCritChance">5%</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="upgrade-card p-4">
+          <div class="text-lg font-bold mb-3">📊 Account Info</div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="opacity-75">🔥 Daily Streak</span>
+              <span class="font-bold" id="profileDailyStreak">0 days</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">📅 Member Since</span>
+              <span class="font-bold" id="profileMemberSince">...</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-75">⏱️ Play Time</span>
+              <span class="font-bold" id="profilePlayTime">0 min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Horizontal Scrollable Navigation -->
+    <div class="header border-t border-white border-opacity-10">
+      <div class="nav-scroll flex">
+        <button onclick="switchTab('game', event)" class="tab-btn tab-active">
+          <div class="text-2xl mb-1">🎮</div>
+          <div class="text-xs font-semibold">Game</div>
+        </button>
+        <button onclick="switchTab('upgrades', event)" class="tab-btn">
+          <div class="text-2xl mb-1">⚡</div>
+          <div class="text-xs font-semibold">Boost</div>
+        </button>
+        <button onclick="switchTab('tasks', event)" class="tab-btn">
+          <div class="text-2xl mb-1">🎯</div>
+          <div class="text-xs font-semibold">Tasks</div>
+        </button>
+        <button onclick="switchTab('leaderboard', event)" class="tab-btn">
+          <div class="text-2xl mb-1">🏆</div>
+          <div class="text-xs font-semibold">Top</div>
+        </button>
+        <button onclick="switchTab('friends', event)" class="tab-btn">
+          <div class="text-2xl mb-1">👥</div>
+          <div class="text-xs font-semibold">Friends</div>
+        </button>
+        <button onclick="switchTab('admin', event)" class="tab-btn hidden" id="adminTabBtn">
+          <div class="text-2xl mb-1">🔐</div>
+          <div class="text-xs font-semibold">Admin</div>
+        </button>
+        <button onclick="switchTab('profile', event)" class="tab-btn">
+          <div class="text-2xl mb-1">👤</div>
+          <div class="text-xs font-semibold">Me</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/main.js"></script>
+</body>
+</html>
