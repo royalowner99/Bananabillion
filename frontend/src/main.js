@@ -1123,12 +1123,33 @@ async function loadProfileData() {
     userData = { ...userData, ...data };
     
     // Update profile with current user data
-    document.getElementById('profileUsername').textContent = userData.username || userData.firstName || 'Anonymous';
+    const username = userData.username || userData.firstName || 'Anonymous';
+    document.getElementById('profileUsername').textContent = username;
     document.getElementById('profileUserId').textContent = `ID: ${userData.userId}`;
     document.getElementById('profileTotalEarned').textContent = formatNumber(userData.totalEarned || 0);
     document.getElementById('profileTotalTaps').textContent = formatNumber(userData.totalTaps || 0);
     document.getElementById('profileTasksCompleted').textContent = userData.tasksCompleted || 0;
     document.getElementById('profileReferralCount').textContent = userData.referralCount || 0;
+    
+    // Set profile photo from Telegram
+    const profilePhoto = document.getElementById('profilePhoto');
+    const profilePhotoFallback = document.getElementById('profilePhotoFallback');
+    const profileInitial = document.getElementById('profileInitial');
+    
+    if (profilePhoto && profilePhotoFallback && profileInitial) {
+      // Try to get Telegram profile photo
+      const telegramUser = tg.initDataUnsafe?.user;
+      if (telegramUser && telegramUser.photo_url) {
+        profilePhoto.src = telegramUser.photo_url;
+        profilePhoto.style.display = 'block';
+        profilePhotoFallback.style.display = 'none';
+      } else {
+        // Show initial letter
+        profileInitial.textContent = username.charAt(0).toUpperCase();
+        profilePhoto.style.display = 'none';
+        profilePhotoFallback.style.display = 'flex';
+      }
+    }
     
     // Power stats - Calculate from upgrades
     const tapPower = 1 + (userData.upgrades?.tapPower || 0);

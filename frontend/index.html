@@ -663,11 +663,11 @@
     <div class="header p-4">
       <div class="flex justify-between items-center gap-3 mb-3">
         <div class="stat-card flex-1">
-          <div class="text-xs opacity-75 mb-1">Balance</div>
+          <div class="text-xs opacity-75 mb-1">’° Balance</div>
           <div class="text-2xl font-bold glow" id="balance">0</div>
         </div>
         <div class="stat-card flex-1 text-right">
-          <div class="text-xs opacity-75 mb-1">Energy</div>
+          <div class="text-xs opacity-75 mb-1">⚡ Energy</div>
           <div class="text-xl font-bold" id="energy">0/0</div>
         </div>
       </div>
@@ -682,28 +682,28 @@
       <div id="gameTab" class="tab-content p-4">
         <div class="text-center mb-4">
           <div class="stat-card inline-block px-6 py-2">
-            <div class="text-xs opacity-75">Tap Power</div>
+            <div class="text-xs opacity-75"> Tap Power</div>
             <div class="text-2xl font-bold glow" id="tapPower">1</div>
           </div>
         </div>
         
         <div class="flex justify-center items-center" style="height: 400px; position: relative;">
           <button id="bananaBtn" class="banana-btn">
-            <div style="font-size: 140px; line-height: 1;">Banana</div>
+            <div style="font-size: 140px; line-height: 1;">🍌</div>
           </button>
         </div>
         
         <div class="grid grid-cols-3 gap-3 mt-6">
           <div class="stat-item text-center">
-            <div class="text-xs opacity-75 mb-1">Taps</div>
+            <div class="text-xs opacity-75 mb-1">‘🏆 Taps</div>
             <div class="font-bold text-lg" id="totalTaps">0</div>
           </div>
           <div class="stat-item text-center">
-            <div class="text-xs opacity-75 mb-1">Combo</div>
+            <div class="text-xs opacity-75 mb-1">”¥ Combo</div>
             <div class="font-bold text-lg glow" id="combo">0x</div>
           </div>
           <div class="stat-item text-center">
-            <div class="text-xs opacity-75 mb-1">Crits</div>
+            <div class="text-xs opacity-75 mb-1">⚡ Crits</div>
             <div class="font-bold text-lg" id="crits">0</div>
           </div>
         </div>
@@ -711,19 +711,19 @@
 
       <!-- Upgrades Tab -->
       <div id="upgradesTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">Upgrades</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">⚡ Upgrades</h2>
         <div id="upgradesList" class="space-y-4"></div>
       </div>
 
       <!-- Tasks Tab -->
       <div id="tasksTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">Tasks</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">🎯 Tasks</h2>
         <div id="tasksList" class="space-y-4"></div>
       </div>
 
       <!-- Leaderboard Tab -->
       <div id="leaderboardTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">Leaderboard</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">🏆 Leaderboard</h2>
         <div class="flex gap-2 mb-6">
           <button onclick="loadLeaderboard('daily', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Daily</button>
           <button onclick="loadLeaderboard('weekly', event)" class="flex-1 py-3 px-4 rounded-xl bg-white bg-opacity-10 font-bold transition hover:bg-opacity-20">Weekly</button>
@@ -734,19 +734,19 @@
 
       <!-- Friends Tab -->
       <div id="friendsTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">Invite Friends</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">‘¥ Invite Friends</h2>
         <div class="upgrade-card rounded-2xl p-6 mb-6">
           <div class="text-center">
-            <div class="text-2xl mb-1">Invite Friends</div>
+            <div class="text-6xl mb-4">🎁</div>
             <div class="text-xl font-bold mb-3">Earn 20% of friend's earnings!</div>
             <div class="text-sm opacity-75 mb-4">Invite friends and get 20% of everything they earn - forever!</div>
             <div class="grid grid-cols-2 gap-4 mt-4">
               <div class="stat-item">
-                <div class="text-xs opacity-75 mb-1">Friends</div>
+                <div class="text-xs opacity-75 mb-1">‘¥ Friends</div>
                 <div class="text-2xl font-bold glow" id="referralCount">0</div>
               </div>
               <div class="stat-item">
-                <div class="text-xs opacity-75 mb-1">Earned</div>
+                <div class="text-xs opacity-75 mb-1">’° Earned</div>
                 <div class="text-2xl font-bold glow" id="referralEarnings">0</div>
               </div>
             </div>
@@ -754,10 +754,10 @@
         </div>
         <div class="grid grid-cols-2 gap-3 mb-4">
           <button onclick="shareReferral()" class="btn-primary py-4 text-base rounded-xl">
-            Share Link
+            “¤ Share Link
           </button>
           <button onclick="copyReferralLink()" class="btn-primary py-4 text-base rounded-xl">
-            Copy Link
+            “‹ Copy Link
           </button>
         </div>
         <div id="referralsList" class="space-y-3"></div>
@@ -766,11 +766,11 @@
 
       <!-- Admin Tab (Only for Admins) -->
       <div id="adminTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">Admin Panel</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">ï¿½ Admin Panel</h2>
         
         <!-- Game Stats -->
         <div class="upgrade-card rounded-2xl p-4 mb-4">
-          <div class="text-lg font-bold mb-3">Game Statistics</div>
+          <div class="text-lg font-bold mb-3">“Š Game Statistics</div>
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div class="bg-black bg-opacity-20 rounded-lg p-3">
               <div class="opacity-75 mb-1">Total Users</div>
@@ -790,13 +790,13 @@
             </div>
           </div>
           <button onclick="loadAdminStats()" class="btn-primary w-full mt-3 py-2 rounded-xl">
-            Refresh Stats
+            ”„ Refresh Stats
           </button>
         </div>
         
         <!-- User Management -->
         <div class="upgrade-card rounded-2xl p-4 mb-4">
-          <div class="text-lg font-bold mb-3">User Management</div>
+          <div class="text-lg font-bold mb-3">‘¤ User Management</div>
           
           <!-- Find User -->
           <div class="mb-3">
@@ -807,7 +807,7 @@
               class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white"
             />
             <button onclick="adminFindUser()" class="btn-primary w-full mt-2 py-2 rounded-xl">
-              Find User
+              ” Find User
             </button>
           </div>
           
@@ -816,10 +816,10 @@
             <div class="text-sm space-y-2" id="adminUserDetails"></div>
             <div class="grid grid-cols-2 gap-2 mt-3">
               <button onclick="adminBanUser()" class="bg-red-500 bg-opacity-80 py-2 rounded-lg text-sm font-bold">
-                Ban
+                « Ban
               </button>
               <button onclick="adminUnbanUser()" class="bg-green-500 bg-opacity-80 py-2 rounded-lg text-sm font-bold">
-                Unban
+                … Unban
               </button>
             </div>
           </div>
@@ -833,36 +833,36 @@
               class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white"
             />
             <button onclick="adminAddCoins()" class="btn-primary w-full mt-2 py-2 rounded-xl">
-              Add Coins to User
+              ’° Add Coins to User
             </button>
           </div>
         </div>
         
         <!-- Broadcast -->
         <div class="upgrade-card rounded-2xl p-4 mb-4">
-          <div class="text-lg font-bold mb-3">Broadcast Message</div>
+          <div class="text-lg font-bold mb-3">“¢ Broadcast Message</div>
           <textarea 
             id="adminBroadcastMsg" 
             placeholder="Enter message to send to all users..."
             class="w-full p-3 rounded-lg bg-black bg-opacity-30 border border-white border-opacity-20 text-white h-24"
           ></textarea>
           <button onclick="adminBroadcast()" class="btn-primary w-full mt-2 py-2 rounded-xl">
-            Send to All Users
+            “¤ Send to All Users
           </button>
         </div>
         
         <!-- Quick Actions -->
         <div class="upgrade-card rounded-2xl p-4">
-          <div class="text-lg font-bold mb-3">Quick Actions</div>
+          <div class="text-lg font-bold mb-3">⚡ Quick Actions</div>
           <div class="space-y-2">
             <button onclick="adminGiveAll()" class="btn-primary w-full py-2 rounded-xl">
-              Give 1000 Coins to All
+              🎁 Give 1000 Coins to All
             </button>
             <button onclick="adminViewTopUsers()" class="btn-primary w-full py-2 rounded-xl">
-              View Top 20 Users
+              🏆 View Top 20 Users
             </button>
             <button onclick="adminViewRecentUsers()" class="btn-primary w-full py-2 rounded-xl">
-              View Recent Users
+              🏆• View Recent Users
             </button>
           </div>
         </div>
@@ -870,12 +870,12 @@
 
       <!-- Profile Tab -->
       <div id="profileTab" class="tab-content hidden p-4">
-        <h2 class="text-3xl font-bold mb-6 glow">Profile</h2>
+        <h2 class="text-3xl font-bold mb-6 glow">‘¤ Profile</h2>
         
         <!-- User Info Card -->
         <div class="upgrade-card rounded-2xl p-6 mb-4" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);">
           <div class="text-center mb-4">
-            <div class="text-6xl mb-3 animate-bounce" style="animation-duration: 3s;">Profile</div>
+            <div class="text-6xl mb-3 animate-bounce" style="animation-duration: 3s;">‘¤</div>
             <div class="text-2xl font-bold glow" id="profileUsername">Loading...</div>
             <div class="text-sm opacity-75 mt-1" id="profileUserId">ID: ...</div>
           </div>
@@ -883,42 +883,42 @@
           <!-- Stats Grid -->
           <div class="grid grid-cols-2 gap-4 mt-6">
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
-              <div class="text-xs opacity-75 mb-2">Total Earned</div>
+              <div class="text-xs opacity-75 mb-2">’° Total Earned</div>
               <div class="text-2xl font-bold glow" id="profileTotalEarned">0</div>
             </div>
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
-              <div class="text-xs opacity-75 mb-2">Total Taps</div>
+              <div class="text-xs opacity-75 mb-2">‘🏆 Total Taps</div>
               <div class="text-2xl font-bold" id="profileTotalTaps">0</div>
             </div>
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
-              <div class="text-xs opacity-75 mb-2">Tasks Done</div>
+              <div class="text-xs opacity-75 mb-2">… Tasks Done</div>
               <div class="text-2xl font-bold" id="profileTasksCompleted">0</div>
             </div>
             <div class="stat-item bg-black bg-opacity-20 rounded-xl p-3 text-center">
-              <div class="text-xs opacity-75 mb-2">Referrals</div>
-              <div class="text-2xl font-bold" id="profileReferralCount">0</div>
+              <div class="text-xs opacity-75 mb-2">‘¥ Referrals</div>
+              <div class="text-2xl font-bold" id="profileReferralCount">0</div>div>
             </div>
           </div>
         </div>
         
         <!-- Power Stats -->
         <div class="upgrade-card rounded-2xl p-4 mb-4">
-          <div class="text-lg font-bold mb-3">Power Stats</div>
+          <div class="text-lg font-bold mb-3">⚡ Power Stats</div>
           <div class="space-y-2">
             <div class="flex justify-between text-sm">
-              <span class="opacity-75">Tap Power</span>
+              <span class="opacity-75"> Tap Power</span>
               <span class="font-bold" id="profileTapPower">1</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="opacity-75">Max Energy</span>
+              <span class="opacity-75">”‹ Max Energy</span>
               <span class="font-bold" id="profileMaxEnergy">500</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="opacity-75">Energy Regen</span>
+              <span class="opacity-75">⚡ Energy Regen</span>
               <span class="font-bold" id="profileEnergyRegen">0.5/s</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="opacity-75">Critical Chance</span>
+              <span class="opacity-75">🎯 Critical Chance</span>
               <span class="font-bold" id="profileCritChance">5%</span>
             </div>
           </div>
@@ -926,18 +926,18 @@
         
         <!-- Account Info -->
         <div class="upgrade-card rounded-2xl p-4">
-          <div class="text-lg font-bold mb-3">Account Info</div>
+          <div class="text-lg font-bold mb-3">“Š Account Info</div>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
-              <span class="opacity-75">Daily Streak</span>
+              <span class="opacity-75">”¥ Daily Streak</span>
               <span class="font-bold" id="profileDailyStreak">0 days</span>
             </div>
             <div class="flex justify-between">
-              <span class="opacity-75">Member Since</span>
+              <span class="opacity-75">“… Member Since</span>
               <span class="font-bold" id="profileMemberSince">...</span>
             </div>
             <div class="flex justify-between">
-              <span class="opacity-75">Play Time</span>
+              <span class="opacity-75">â±ï¸ Play Time</span>
               <span class="font-bold" id="profilePlayTime">0 min</span>
             </div>
           </div>
@@ -959,11 +959,11 @@
         <div class="text-xs font-semibold">Tasks</div>
       </button>
       <button onclick="switchTab('leaderboard', event)" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">🏆</div>
+        <div class="text-2xl mb-1">🏆</div>
         <div class="text-xs font-semibold">Top</div>
       </button>
       <button onclick="switchTab('friends', event)" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">👥</div>
+        <div class="text-2xl mb-1">‘¥</div>
         <div class="text-xs font-semibold">Friends</div>
       </button>
       <!-- Admin Tab (Hidden by default, shown only for admins) -->
@@ -972,7 +972,7 @@
         <div class="text-xs font-semibold">Admin</div>
       </button>
       <button onclick="switchTab('profile', event)" class="tab-btn flex-1 py-3 text-center">
-        <div class="text-2xl mb-1">👤</div>
+        <div class="text-2xl mb-1">‘¤</div>
         <div class="text-xs font-semibold">Me</div>
       </button>
     </div>
