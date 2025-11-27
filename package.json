@@ -11,7 +11,7 @@
     "test": "node test-server.js",
     "build": "echo 'No build needed - static frontend'",
     "preview": "vite preview --port 3000",
-    "init-tasks": "node backend/src/scripts/initializeAllTasks.js"
+    "init-tasks": "node backend/src/scripts/initializeTasks.js"
   },
   "keywords": ["telegram", "mini-app", "game"],
   "author": "",

@@ -1,74 +1,175 @@
 const { Task, UserTask } = require('../models/Task');
 const User = require('../models/User');
-const { checkReferralActivation } = require('../utils/referralLogic');
+const axios = require('axios');
 
+// Helper: Get today's date string (YYYY-MM-DD)
+function getTodayString() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Helper: Check if 24 hours have passed
+function has24HoursPassed(lastTime) {
+  if (!lastTime) return true;
+  const now = Date.now();
+  const diff = now - new Date(lastTime).getTime();
+  return diff >= 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+}
+
+// Helper: Reset daily tasks if needed
+async function resetDailyTasksIfNeeded(userId) {
+  const today = getTodayString();
+  
+  // Find all user tasks that need daily reset
+  const userTasks = await UserTask.find({ 
+    userId,
+    lastResetDate: { $ne: today }
+  });
+  
+  for (const userTask of userTasks) {
+    const task = await Task.findOne({ taskId: userTask.taskId });
+    
+    if (!task) continue;
+    
+    // Reset daily tasks
+    if (task.taskType === 'daily_checkin' || task.taskType === 'watch_ad') {
+      if (userTask.status === 'claimed' && has24HoursPassed(userTask.lastClaimTime)) {
+        userTask.status = 'pending';
+        userTask.dailyCompletionCount = 0;
+        userTask.lastResetDate = today;
+        await userTask.save();
+      }
+    }
+  }
+}
+
+// GET /api/tasks/list - Get all tasks with proper sorting
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ isActive: true }).sort({ category: 1, order: 1 });
-    const userTasks = await UserTask.find({ userId: req.userId });
+    const userId = req.userId;
     
+    // Reset daily tasks if needed
+    await resetDailyTasksIfNeeded(userId);
+    
+    // Get all active tasks
+    const tasks = await Task.find({ isActive: true }).sort({ order: 1 });
+    
+    // Get user's task progress
+    const userTasks = await UserTask.find({ userId });
     const userTaskMap = {};
     userTasks.forEach(ut => {
       userTaskMap[ut.taskId] = ut;
     });
     
-    const now = Date.now();
+    // Get user data for milestone checks
+    const user = await User.findOne({ userId });
     
-    const tasksWithStatus = tasks.map(task => {
-      const userTask = userTaskMap[task.taskId];
-      let canComplete = true;
-      let timeRemaining = 0;
-      let status = 'available'; // available, completed, cooldown
+    const today = getTodayString();
+    const tasksWithStatus = [];
+    
+    for (const task of tasks) {
+      let userTask = userTaskMap[task.taskId];
       
-      if (userTask) {
-        if (task.type === 'one-time' && userTask.completed) {
-          canComplete = false;
-          status = 'completed';
-        } else if (task.type === 'daily' || task.type === 'cooldown') {
-          if (userTask.lastCompleted) {
-            const timeSinceComplete = (now - userTask.lastCompleted.getTime()) / 1000;
-            const cooldown = task.type === 'daily' ? 86400 : task.cooldownSeconds;
-            
-            if (timeSinceComplete < cooldown) {
-              canComplete = false;
-              timeRemaining = cooldown - timeSinceComplete;
-              status = 'cooldown';
-            }
-          }
+      // Create user task if doesn't exist
+      if (!userTask) {
+        userTask = new UserTask({
+          userId,
+          taskId: task.taskId,
+          status: 'pending',
+          lastResetDate: today
+        });
+        await userTask.save();
+        userTaskMap[task.taskId] = userTask;
+      }
+      
+      // Check if daily task needs reset
+      if ((task.taskType === 'daily_checkin' || task.taskType === 'watch_ad') && 
+          userTask.lastResetDate !== today) {
+        if (has24HoursPassed(userTask.lastClaimTime)) {
+          userTask.status = 'pending';
+          userTask.dailyCompletionCount = 0;
+          userTask.lastResetDate = today;
+          await userTask.save();
         }
       }
       
-      return {
+      // Check daily limit for watch_ad
+      let canComplete = true;
+      if (task.taskType === 'watch_ad' && task.dailyLimit) {
+        if (userTask.dailyCompletionCount >= task.dailyLimit) {
+          canComplete = false;
+        }
+      }
+      
+      // Check milestone requirements
+      if (task.taskType === 'milestone' && task.requirement && userTask.status === 'pending') {
+        const req = task.requirement;
+        let requirementMet = false;
+        
+        switch (req.type) {
+          case 'taps':
+            requirementMet = (user?.totalTaps || 0) >= req.count;
+            break;
+          case 'referrals':
+            requirementMet = (user?.referralCount || 0) >= req.count;
+            break;
+          case 'balance':
+            requirementMet = (user?.balance || 0) >= req.count;
+            break;
+        }
+        
+        // Auto-complete milestone if requirement met
+        if (requirementMet && userTask.status === 'pending') {
+          userTask.status = 'completed';
+          userTask.completedAt = new Date();
+          await userTask.save();
+        }
+      }
+      
+      // Calculate sort priority
+      let sortPriority = 0;
+      if (userTask.status === 'pending') {
+        sortPriority = 1; // Top
+      } else if (userTask.status === 'completed') {
+        sortPriority = 2; // Middle
+      } else if (userTask.status === 'claimed') {
+        sortPriority = 3; // Bottom
+      }
+      
+      tasksWithStatus.push({
         taskId: task.taskId,
-        title: task.title,
+        taskName: task.taskName,
+        taskType: task.taskType,
         description: task.description,
         reward: task.reward,
-        type: task.type,
-        category: task.category || 'social',
         icon: task.icon,
         link: task.link,
-        requiresVerification: task.requiresVerification || false,
-        verificationMethod: task.verificationMethod || 'manual',
-        completed: userTask?.completed || false,
-        completionCount: userTask?.completionCount || 0,
+        verifyRequired: task.verifyRequired,
+        dailyLimit: task.dailyLimit,
+        status: userTask.status,
+        sortPriority,
         canComplete,
-        status,
-        timeRemaining: Math.ceil(timeRemaining)
-      };
-    });
+        completedAt: userTask.completedAt,
+        claimedAt: userTask.claimedAt,
+        dailyCompletionCount: userTask.dailyCompletionCount,
+        totalCompletions: userTask.totalCompletions
+      });
+    }
     
-    // Group tasks by category
-    const groupedTasks = {
-      social: tasksWithStatus.filter(t => t.category === 'social'),
-      daily: tasksWithStatus.filter(t => t.category === 'daily'),
-      special: tasksWithStatus.filter(t => t.category === 'special'),
-      partner: tasksWithStatus.filter(t => t.category === 'partner'),
-      achievement: tasksWithStatus.filter(t => t.category === 'achievement')
-    };
+    // SORT: pending (1) → completed (2) → claimed (3)
+    tasksWithStatus.sort((a, b) => {
+      if (a.sortPriority !== b.sortPriority) {
+        return a.sortPriority - b.sortPriority;
+      }
+      // Within same priority, sort by reward (higher first)
+      return b.reward - a.reward;
+    });
     
     res.json({ 
       tasks: tasksWithStatus,
-      groupedTasks
+      totalTasks: tasksWithStatus.length,
+      pendingCount: tasksWithStatus.filter(t => t.status === 'pending').length,
+      completedCount: tasksWithStatus.filter(t => t.status === 'completed').length,
+      claimedCount: tasksWithStatus.filter(t => t.status === 'claimed').length
     });
     
   } catch (error) {
@@ -77,276 +178,53 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-exports.completeTask = async (req, res) => {
-  try {
-    const { taskId, verification } = req.body;
-    
-    if (!taskId) {
-      return res.status(400).json({ error: 'Task ID required' });
-    }
-    
-    const task = await Task.findOne({ taskId, isActive: true });
-    
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
-    
-    const user = await User.findOne({ userId: req.userId });
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Find or create user task
-    let userTask = await UserTask.findOne({ userId: req.userId, taskId });
-    
-    if (!userTask) {
-      userTask = new UserTask({
-        userId: req.userId,
-        taskId
-      });
-    }
-    
-    // Check if can complete
-    const now = Date.now();
-    
-    if (task.type === 'one-time' && userTask.completed) {
-      return res.status(400).json({ error: 'Task already completed' });
-    }
-    
-    if ((task.type === 'daily' || task.type === 'cooldown') && userTask.lastCompleted) {
-      const timeSinceComplete = (now - userTask.lastCompleted.getTime()) / 1000;
-      const cooldown = task.type === 'daily' ? 86400 : task.cooldownSeconds;
-      
-      if (timeSinceComplete < cooldown) {
-        return res.status(400).json({ 
-          error: 'Task on cooldown',
-          timeRemaining: Math.ceil(cooldown - timeSinceComplete)
-        });
-      }
-    }
-    
-    // Check milestone/achievement tasks
-    if (task.type === 'milestone' && task.requirement) {
-      const req = task.requirement;
-      let canComplete = false;
-      
-      switch (req.type) {
-        case 'totalTaps':
-          canComplete = user.totalTaps >= req.count;
-          break;
-        case 'referrals':
-          canComplete = user.referralCount >= req.count;
-          break;
-        case 'upgradesPurchased':
-          canComplete = (user.upgradesPurchased || 0) >= req.count;
-          break;
-        case 'upgradeLevel':
-          const upgradeLevel = user.upgrades?.[req.upgrade]?.level || 0;
-          canComplete = upgradeLevel >= req.level;
-          break;
-        case 'loginStreak':
-          canComplete = (user.dailyStreak || 0) >= req.days;
-          break;
-        default:
-          canComplete = true;
-      }
-      
-      if (!canComplete) {
-        return res.status(400).json({ 
-          error: 'Requirement not met',
-          message: 'You have not met the requirements for this task yet'
-        });
-      }
-    }
-    
-    // Handle tasks that require external verification (social media)
-    if (task.requiresVerification === true && task.link) {
-      // For social media tasks, we trust the user clicked the link
-      // In production, you could integrate with social media APIs
-      // For now, just mark as completed if they confirm
-      if (!verification || verification.confirmed !== true) {
-        return res.status(400).json({ 
-          error: 'Task verification required',
-          message: 'Please confirm you have completed the task'
-        });
-      }
-    }
-    
-    // For tasks without requiresVerification, allow completion without verification
-    // This includes daily tasks, milestone tasks, etc.
-    
-    // Calculate reward (handle random rewards)
-    let reward = task.reward;
-    if (task.rewardRange) {
-      reward = Math.floor(Math.random() * (task.rewardRange.max - task.rewardRange.min + 1)) + task.rewardRange.min;
-    }
-    
-    // Complete task
-    userTask.completed = true;
-    userTask.lastCompleted = new Date();
-    userTask.completionCount += 1;
-    await userTask.save();
-    
-    // Give reward
-    user.balance += reward;
-    user.totalEarned += reward;
-    user.tasksCompleted += 1;
-    
-    // Award badge if task has one
-    if (task.badge && !user.badges?.includes(task.badge)) {
-      if (!user.badges) user.badges = [];
-      user.badges.push(task.badge);
-    }
-    
-    await user.save();
-    
-    // Check referral activation
-    await checkReferralActivation(user.userId);
-    
-    res.json({
-      balance: user.balance,
-      reward: reward,
-      tasksCompleted: user.tasksCompleted,
-      badge: task.badge || null,
-      message: task.badge ? `🎉 Badge earned: ${task.badge}!` : null
-    });
-    
-  } catch (error) {
-    console.error('Complete task error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
-
-exports.createTask = async (req, res) => {
-  try {
-    const { 
-      taskId, 
-      title, 
-      description, 
-      reward, 
-      type, 
-      category,
-      cooldownSeconds, 
-      icon, 
-      link,
-      requiresVerification,
-      verificationMethod
-    } = req.body;
-    
-    if (!taskId || !title || !description || !reward) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    const existingTask = await Task.findOne({ taskId });
-    
-    if (existingTask) {
-      return res.status(400).json({ error: 'Task ID already exists' });
-    }
-    
-    // Auto-detect verification method from link
-    let autoVerificationMethod = verificationMethod || 'manual';
-    let autoRequiresVerification = requiresVerification || false;
-    
-    if (link) {
-      if (link.includes('t.me')) {
-        autoVerificationMethod = 'telegram';
-        autoRequiresVerification = true;
-      } else if (link.includes('youtube.com')) {
-        autoVerificationMethod = 'youtube';
-        autoRequiresVerification = true;
-      } else if (link.includes('twitter.com') || link.includes('x.com')) {
-        autoVerificationMethod = 'twitter';
-        autoRequiresVerification = true;
-      }
-    }
-    
-    const task = new Task({
-      taskId,
-      title,
-      description,
-      reward,
-      type: type || 'one-time',
-      category: category || 'social',
-      cooldownSeconds: cooldownSeconds || 0,
-      icon: icon || '🎯',
-      link: link || null,
-      requiresVerification: autoRequiresVerification,
-      verificationMethod: autoVerificationMethod
-    });
-    
-    await task.save();
-    
-    res.json({ task });
-    
-  } catch (error) {
-    console.error('Create task error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
-
-exports.deleteTask = async (req, res) => {
-  try {
-    const { taskId } = req.body;
-    
-    if (!taskId) {
-      return res.status(400).json({ error: 'Task ID required' });
-    }
-    
-    const task = await Task.findOneAndDelete({ taskId });
-    
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
-    
-    // Also delete all user task records for this task
-    await UserTask.deleteMany({ taskId });
-    
-    res.json({ message: 'Task deleted successfully' });
-    
-  } catch (error) {
-    console.error('Delete task error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-};
-
+// POST /api/tasks/verify - Verify task completion (for join channel/group)
 exports.verifyTask = async (req, res) => {
   try {
     const { taskId } = req.body;
-    const axios = require('axios');
-    
-    if (!taskId) {
-      return res.status(400).json({ error: 'Task ID required' });
-    }
+    const userId = req.userId;
     
     const task = await Task.findOne({ taskId, isActive: true });
-    
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
     
-    const user = await User.findOne({ userId: req.userId });
+    let userTask = await UserTask.findOne({ userId, taskId });
+    if (!userTask) {
+      userTask = new UserTask({ userId, taskId, status: 'pending' });
+    }
     
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    // Check if already completed or claimed
+    if (userTask.status === 'completed' || userTask.status === 'claimed') {
+      return res.json({ 
+        verified: true, 
+        status: userTask.status,
+        message: 'Task already completed'
+      });
     }
     
     let verified = false;
     let message = 'Verification failed';
     
     // Verify based on task type
-    if (task.link && task.link.includes('t.me')) {
-      // Telegram verification
+    if (task.taskType === 'join_channel' || task.taskType === 'join_group') {
+      if (!task.link) {
+        return res.status(400).json({ error: 'Task has no link configured' });
+      }
+      
       try {
-        const botToken = process.env.BOT_TOKEN;
-        const channelUsername = task.link.split('t.me/')[1];
+        // Extract channel/group username from link
+        const linkParts = task.link.split('/');
+        const channelUsername = linkParts[linkParts.length - 1].replace('@', '');
         
+        // Check membership using Telegram Bot API
+        const botToken = process.env.BOT_TOKEN;
         const response = await axios.get(
           `https://api.telegram.org/bot${botToken}/getChatMember`,
           {
             params: {
               chat_id: `@${channelUsername}`,
-              user_id: req.userId
+              user_id: userId
             }
           }
         );
@@ -354,32 +232,36 @@ exports.verifyTask = async (req, res) => {
         if (response.data.ok) {
           const status = response.data.result.status;
           verified = ['creator', 'administrator', 'member'].includes(status);
-          message = verified ? 'Telegram membership verified!' : 'You are not a member of the channel';
+          message = verified ? 'Membership verified!' : 'You are not a member yet';
+        } else {
+          message = 'Could not verify membership';
         }
       } catch (error) {
-        console.error('Telegram verification error:', error);
-        message = 'Could not verify Telegram membership';
+        console.error('Telegram API error:', error.response?.data || error.message);
+        message = 'Verification temporarily unavailable';
       }
-    } else if (task.link && task.link.includes('youtube.com')) {
-      // YouTube verification (requires YouTube API key)
-      // For now, we'll use manual verification
+    } else if (task.taskType === 'social') {
+      // For social tasks, trust user confirmation
       verified = true;
-      message = 'Please confirm you subscribed to the channel';
-    } else if (task.link && task.link.includes('twitter.com')) {
-      // Twitter verification (requires Twitter API)
-      // For now, we'll use manual verification
-      verified = true;
-      message = 'Please confirm you followed the account';
+      message = 'Task verified!';
     } else {
-      // Generic task - manual verification
+      // Other tasks don't need verification
       verified = true;
-      message = 'Task marked for verification';
+      message = 'Task ready to complete';
+    }
+    
+    // Update status if verified
+    if (verified && userTask.status === 'pending') {
+      userTask.status = 'completed';
+      userTask.completedAt = new Date();
+      userTask.verified = true;
+      await userTask.save();
     }
     
     res.json({ 
       verified,
-      message,
-      taskId: task.taskId
+      status: userTask.status,
+      message
     });
     
   } catch (error) {
@@ -388,9 +270,146 @@ exports.verifyTask = async (req, res) => {
   }
 };
 
+// POST /api/tasks/claim - Claim task reward
+exports.claimTask = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    const userId = req.userId;
+    
+    const task = await Task.findOne({ taskId, isActive: true });
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    let userTask = await UserTask.findOne({ userId, taskId });
+    if (!userTask) {
+      return res.status(400).json({ error: 'Task not started' });
+    }
+    
+    // Anti-cheat: Check status
+    if (userTask.status === 'claimed') {
+      return res.status(400).json({ error: 'Reward already claimed' });
+    }
+    
+    if (userTask.status === 'pending') {
+      return res.status(400).json({ error: 'Task not completed yet' });
+    }
+    
+    // Check daily limit for watch_ad
+    if (task.taskType === 'watch_ad' && task.dailyLimit) {
+      if (userTask.dailyCompletionCount >= task.dailyLimit) {
+        return res.status(400).json({ error: 'Daily limit reached' });
+      }
+    }
+    
+    // Update user task status
+    userTask.status = 'claimed';
+    userTask.claimedAt = new Date();
+    userTask.lastClaimTime = new Date();
+    userTask.totalCompletions += 1;
+    
+    if (task.taskType === 'watch_ad') {
+      userTask.dailyCompletionCount += 1;
+    }
+    
+    await userTask.save();
+    
+    // Add reward to user
+    user.balance += task.reward;
+    user.totalEarned += task.reward;
+    user.tasksCompleted = (user.tasksCompleted || 0) + 1;
+    await user.save();
+    
+    res.json({
+      success: true,
+      reward: task.reward,
+      newBalance: user.balance,
+      status: userTask.status,
+      message: `Claimed ${task.reward} coins!`
+    });
+    
+  } catch (error) {
+    console.error('Claim task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// POST /api/tasks/complete - Complete task without verification (for daily checkin, etc)
+exports.completeTask = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    const userId = req.userId;
+    
+    const task = await Task.findOne({ taskId, isActive: true });
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    let userTask = await UserTask.findOne({ userId, taskId });
+    if (!userTask) {
+      userTask = new UserTask({ userId, taskId, status: 'pending' });
+    }
+    
+    // Check if already completed
+    if (userTask.status === 'completed' || userTask.status === 'claimed') {
+      return res.json({ 
+        success: true,
+        status: userTask.status,
+        message: 'Task already completed'
+      });
+    }
+    
+    // Mark as completed
+    userTask.status = 'completed';
+    userTask.completedAt = new Date();
+    await userTask.save();
+    
+    res.json({
+      success: true,
+      status: userTask.status,
+      message: 'Task completed! Click claim to get your reward.'
+    });
+    
+  } catch (error) {
+    console.error('Complete task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Admin: Create task
+exports.createTask = async (req, res) => {
+  try {
+    const task = new Task(req.body);
+    await task.save();
+    res.json({ success: true, task });
+  } catch (error) {
+    console.error('Create task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Admin: Delete task
+exports.deleteTask = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    await Task.findOneAndDelete({ taskId });
+    await UserTask.deleteMany({ taskId });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Admin: Get all tasks
 exports.getAllTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find().sort({ order: 1 });
     res.json({ tasks });
   } catch (error) {
     console.error('Get all tasks error:', error);

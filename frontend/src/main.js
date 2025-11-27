@@ -700,13 +700,186 @@ async function loadTasks(forceRefresh = false) {
   }
 }
 
-// Render Tasks - Enhanced with categories and better status
+// Render Tasks - New system with pending/completed/claimed sorting
 function renderTasks(tasks) {
   try {
     const tasksList = document.getElementById('tasksList');
     tasksList.innerHTML = '';
     
-    // Group tasks by category
+    if (!tasks || tasks.length === 0) {
+      tasksList.innerHTML = `
+        <div class="text-center py-12 opacity-60">
+          <div class="text-6xl mb-4">🎯</div>
+          <div class="text-xl font-bold mb-2">No Tasks Available</div>
+          <div class="text-sm">Check back later for new tasks!</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Tasks are already sorted by backend: pending → completed → claimed
+    // Group by status for display
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    const completedTasks = tasks.filter(t => t.status === 'completed');
+    const claimedTasks = tasks.filter(t => t.status === 'claimed');
+    
+    // Render pending tasks (TOP)
+    if (pendingTasks.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'text-xl font-bold mb-4 flex items-center gap-2';
+      header.innerHTML = `
+        <span>🎯 Available Tasks</span>
+        <span class="text-sm font-normal opacity-60">(${pendingTasks.length})</span>
+      `;
+      tasksList.appendChild(header);
+      
+      pendingTasks.forEach(task => {
+        tasksList.appendChild(createTaskCard(task));
+      });
+    }
+    
+    // Render completed tasks (MIDDLE)
+    if (completedTasks.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'text-xl font-bold mb-4 mt-6 flex items-center gap-2';
+      header.innerHTML = `
+        <span>✅ Ready to Claim</span>
+        <span class="text-sm font-normal opacity-60">(${completedTasks.length})</span>
+      `;
+      tasksList.appendChild(header);
+      
+      completedTasks.forEach(task => {
+        tasksList.appendChild(createTaskCard(task));
+      });
+    }
+    
+    // Render claimed tasks (BOTTOM)
+    if (claimedTasks.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'text-xl font-bold mb-4 mt-6 flex items-center gap-2 opacity-60';
+      header.innerHTML = `
+        <span>🏆 Completed</span>
+        <span class="text-sm font-normal">(${claimedTasks.length})</span>
+      `;
+      tasksList.appendChild(header);
+      
+      claimedTasks.forEach(task => {
+        tasksList.appendChild(createTaskCard(task));
+      });
+    }
+    
+    console.log('✅ Tasks rendered:', {
+      pending: pendingTasks.length,
+      completed: completedTasks.length,
+      claimed: claimedTasks.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Render tasks error:', error);
+    const tasksList = document.getElementById('tasksList');
+    if (tasksList) {
+      tasksList.innerHTML = `
+        <div class="text-center py-12">
+          <div class="text-6xl mb-4">❌</div>
+          <div class="text-xl font-bold mb-2 text-red-400">Error Loading Tasks</div>
+          <div class="text-sm opacity-75 mb-4">${error.message}</div>
+          <button onclick="loadTasks(true)" class="btn-primary py-2 px-6 rounded-xl">
+            🔄 Try Again
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+// Create Task Card
+function createTaskCard(task) {
+  const card = document.createElement('div');
+  card.className = 'task-card rounded-2xl p-4 mb-3';
+  
+  let buttonHTML = '';
+  let statusBadge = '';
+  let cardClasses = '';
+  
+  switch (task.status) {
+    case 'pending':
+      if (task.verifyRequired && task.link) {
+        buttonHTML = `
+          <button onclick="verifyTask('${task.taskId}')" class="btn-primary py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap">
+            🔍 Verify
+          </button>
+        `;
+      } else if (task.taskType === 'milestone') {
+        buttonHTML = `
+          <button class="btn-primary btn-disabled py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap" disabled>
+            ⏳ In Progress
+          </button>
+        `;
+      } else {
+        buttonHTML = `
+          <button onclick="completeAndClaimTask('${task.taskId}')" class="btn-primary py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap">
+            💰 Complete
+          </button>
+        `;
+      }
+      statusBadge = '<span class="text-xs bg-yellow-500 bg-opacity-30 px-2 py-1 rounded-full border border-yellow-400 border-opacity-50 animate-pulse">🎯 Available</span>';
+      cardClasses = 'border-yellow-500 border-opacity-30 shadow-lg';
+      break;
+      
+    case 'completed':
+      buttonHTML = `
+        <button onclick="claimTaskReward('${task.taskId}')" class="btn-primary py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap animate-pulse">
+          💰 Claim ${formatNumber(task.reward)}
+        </button>
+      `;
+      statusBadge = '<span class="text-xs bg-green-500 bg-opacity-30 px-2 py-1 rounded-full border border-green-400 border-opacity-50 animate-pulse">✅ Ready</span>';
+      cardClasses = 'border-green-500 border-opacity-50 shadow-lg';
+      break;
+      
+    case 'claimed':
+      buttonHTML = `
+        <button class="btn-primary btn-disabled bg-gray-600 bg-opacity-30 py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap" disabled>
+          ✅ Claimed
+        </button>
+      `;
+      statusBadge = '<span class="text-xs bg-gray-500 bg-opacity-30 px-2 py-1 rounded-full border border-gray-400 border-opacity-50">🏆 Done</span>';
+      cardClasses = 'opacity-60 border-gray-500 border-opacity-20';
+      break;
+  }
+  
+  // Add classes safely
+  cardClasses.split(' ').filter(c => c.trim()).forEach(c => card.classList.add(c));
+  
+  card.innerHTML = `
+    <div class="flex justify-between items-center gap-4">
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-4xl">${task.icon}</span>
+          <div class="flex-1">
+            <div class="font-bold text-lg">${task.taskName}</div>
+            <div class="text-sm opacity-75">${task.description}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap mt-2">
+          <div class="flex items-center gap-2">
+            <span class="text-yellow-400 font-bold glow text-lg">+${formatNumber(task.reward)}</span>
+            <span class="text-xs opacity-75">coins</span>
+          </div>
+          ${statusBadge}
+          ${task.dailyLimit ? `<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded-full border border-blue-400 border-opacity-30">🔄 Daily</span>` : ''}
+          ${task.dailyCompletionCount > 0 ? `<span class="text-xs opacity-60">${task.dailyCompletionCount}/${task.dailyLimit} today</span>` : ''}
+        </div>
+      </div>
+      ${buttonHTML}
+    </div>
+  `;
+  
+  return card;
+}
+
+// Group tasks by category (OLD - keeping for reference)
+function groupTasksByCategory_OLD(tasks) {
+  try {
     const categories = {
       social: { title: '📱 Social Media', tasks: [] },
       daily: { title: '🔄 Daily Tasks', tasks: [] },
@@ -903,7 +1076,108 @@ function renderTasks(tasks) {
   }
 }
 
-// Complete Task - Perfect logic with verification
+// Verify Task (for join channel/group)
+async function verifyTask(taskId) {
+  try {
+    console.log(`🔍 Verifying task: ${taskId}`);
+    
+    // Get task details
+    const tasksData = await apiCall('/tasks/list');
+    const task = tasksData.tasks.find(t => t.taskId === taskId);
+    
+    if (!task) {
+      throw new Error('Task not found');
+    }
+    
+    // Open link if exists
+    if (task.link) {
+      tg.openLink(task.link);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    // Verify with backend
+    showNotification('⏳ Verifying...');
+    const data = await apiCall('/tasks/verify', 'POST', { taskId });
+    
+    if (data.verified) {
+      tg.HapticFeedback.notificationOccurred('success');
+      showNotification('✅ ' + data.message);
+      await loadTasks(true);
+    } else {
+      tg.HapticFeedback.notificationOccurred('error');
+      showNotification('❌ ' + data.message);
+    }
+    
+  } catch (error) {
+    console.error('Verify task error:', error);
+    tg.HapticFeedback.notificationOccurred('error');
+    showNotification('❌ ' + (error.message || 'Verification failed'));
+  }
+}
+
+// Claim Task Reward
+async function claimTaskReward(taskId) {
+  try {
+    console.log(`💰 Claiming reward for task: ${taskId}`);
+    
+    const data = await apiCall('/tasks/claim', 'POST', { taskId });
+    
+    if (data.success) {
+      // Update balance
+      userData.balance = data.newBalance;
+      updateUI();
+      
+      // Show success
+      tg.HapticFeedback.notificationOccurred('success');
+      showNotification(`🎉 ${data.message}`);
+      
+      // Reload tasks
+      await loadTasks(true);
+    }
+    
+  } catch (error) {
+    console.error('Claim task error:', error);
+    tg.HapticFeedback.notificationOccurred('error');
+    showNotification('❌ ' + (error.message || 'Failed to claim reward'));
+    await loadTasks(true);
+  }
+}
+
+// Complete and Claim Task (for tasks without verification)
+async function completeAndClaimTask(taskId) {
+  try {
+    console.log(`⚡ Completing and claiming task: ${taskId}`);
+    
+    // Complete task
+    const completeData = await apiCall('/tasks/complete', 'POST', { taskId });
+    
+    if (completeData.success) {
+      // Immediately claim
+      const claimData = await apiCall('/tasks/claim', 'POST', { taskId });
+      
+      if (claimData.success) {
+        // Update balance
+        userData.balance = claimData.newBalance;
+        updateUI();
+        
+        // Show success
+        tg.HapticFeedback.notificationOccurred('success');
+        showNotification(`🎉 ${claimData.message}`);
+        
+        // Reload tasks
+        await loadTasks(true);
+      }
+    }
+    
+  } catch (error) {
+    console.error('Complete and claim task error:', error);
+    tg.HapticFeedback.notificationOccurred('error');
+    showNotification('❌ ' + (error.message || 'Failed to complete task'));
+    await loadTasks(true);
+  }
+}
+
+// Complete Task - OLD (keeping for compatibility)
 async function completeTask(taskId) {
   try {
     console.log(`🎯 Attempting to complete task: ${taskId}`);

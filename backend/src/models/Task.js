@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// Task Schema - Defines available tasks
 const taskSchema = new mongoose.Schema({
   taskId: {
     type: String,
@@ -7,9 +8,14 @@ const taskSchema = new mongoose.Schema({
     unique: true,
     index: true
   },
-  title: {
+  taskName: {
     type: String,
     required: true
+  },
+  taskType: {
+    type: String,
+    required: true,
+    enum: ['join_channel', 'join_group', 'daily_checkin', 'watch_ad', 'invite_friend', 'social', 'milestone']
   },
   description: {
     type: String,
@@ -19,36 +25,6 @@ const taskSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  type: {
-    type: String,
-    enum: ['daily', 'one-time', 'partner', 'cooldown', 'milestone', 'special'],
-    default: 'one-time'
-  },
-  category: {
-    type: String,
-    enum: ['social', 'daily', 'special', 'partner', 'achievement'],
-    default: 'social'
-  },
-  requirement: {
-    type: mongoose.Schema.Types.Mixed,
-    default: null
-  },
-  rewardRange: {
-    min: { type: Number, default: 0 },
-    max: { type: Number, default: 0 }
-  },
-  badge: {
-    type: String,
-    default: null
-  },
-  duration: {
-    type: Number,
-    default: 0
-  },
-  cooldownSeconds: {
-    type: Number,
-    default: 0
-  },
   icon: {
     type: String,
     default: '🎯'
@@ -57,14 +33,17 @@ const taskSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  requiresVerification: {
+  verifyRequired: {
     type: Boolean,
     default: false
   },
-  verificationMethod: {
-    type: String,
-    enum: ['telegram', 'youtube', 'twitter', 'manual', 'auto'],
-    default: 'manual'
+  dailyLimit: {
+    type: Number,
+    default: null // null = no limit, number = max times per day
+  },
+  requirement: {
+    type: Object,
+    default: null // For milestone tasks: { type: 'taps', count: 1000 }
   },
   isActive: {
     type: Boolean,
@@ -78,10 +57,9 @@ const taskSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-}, {
-  timestamps: true
 });
 
+// UserTask Schema - Tracks user's task progress
 const userTaskSchema = new mongoose.Schema({
   userId: {
     type: String,
@@ -93,28 +71,59 @@ const userTaskSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  completed: {
-    type: Boolean,
-    default: false
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'completed', 'claimed'],
+    default: 'pending'
   },
-  lastCompleted: {
+  completedAt: {
     type: Date,
     default: null
   },
-  completionCount: {
+  claimedAt: {
+    type: Date,
+    default: null
+  },
+  lastClaimTime: {
+    type: Date,
+    default: null
+  },
+  dailyCompletionCount: {
     type: Number,
     default: 0
+  },
+  lastResetDate: {
+    type: String,
+    default: null // Format: YYYY-MM-DD
+  },
+  totalCompletions: {
+    type: Number,
+    default: 0
+  },
+  verified: {
+    type: Boolean,
+    default: false
   },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true
 });
 
-// Compound index
+// Compound index for efficient queries
 userTaskSchema.index({ userId: 1, taskId: 1 }, { unique: true });
+userTaskSchema.index({ userId: 1, status: 1 });
+
+// Update timestamp on save
+userTaskSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 const Task = mongoose.model('Task', taskSchema);
 const UserTask = mongoose.model('UserTask', userTaskSchema);
