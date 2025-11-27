@@ -66,6 +66,13 @@ app.use('/api/minigames', require('./src/routes/miniGame'));
 app.use('/api/lottery', require('./src/routes/lottery'));
 app.use('/api/spin', require('./src/routes/dailySpin'));
 
+// BBN System Routes
+app.use('/api/payment', require('./src/routes/payment'));
+app.use('/api/booster', require('./src/routes/booster'));
+app.use('/api/withdrawal', require('./src/routes/withdrawal'));
+app.use('/api/mining', require('./src/routes/mining'));
+app.use('/api/shop', require('./src/routes/shop'));
+
 // Serve frontend (only for non-API routes)
 app.use(express.static(path.join(__dirname, '../frontend')));
 

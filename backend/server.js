@@ -2,11 +2,19 @@ require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./src/config/database');
 const { Task } = require('./src/models/Task');
+const { initializeCronJobs } = require('./src/utils/cronJobs');
+const { initializeDefaultBoosters } = require('./src/controllers/boosterController');
 
 const PORT = process.env.PORT || 3000;
 
 // Connect to database
 connectDB();
+
+// Initialize cron jobs
+initializeCronJobs();
+
+// Initialize default boosters
+initializeDefaultBoosters();
 
 // Initialize default tasks
 async function initializeTasks() {
