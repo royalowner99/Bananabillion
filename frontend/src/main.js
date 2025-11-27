@@ -947,9 +947,9 @@ async function completeTask(taskId) {
       return;
     }
     
-    let verified = false;
+    let verified = true; // Default to true for tasks without links
     
-    // If task has a link, require verification
+    // If task has a link, require user to visit it and confirm
     if (task.link && task.link.trim() !== '') {
       console.log(`🔗 Task has link: ${task.link}`);
       
@@ -958,14 +958,14 @@ async function completeTask(taskId) {
         tg.openLink(task.link);
         console.log('✅ Link opened');
         
-        // Wait 3 seconds to ensure user sees the content
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Wait 2 seconds to ensure link opens
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Show confirmation dialog
         const confirmed = await new Promise((resolve) => {
           try {
             tg.showConfirm(
-              `Did you complete: "${task.title}"?\n\n⚠️ Only confirm if you actually completed the task.\nFalse confirmations may result in account suspension.`,
+              `Did you complete: "${task.title}"?\n\nClick OK if you completed the task.`,
               (result) => {
                 console.log(`User confirmation result: ${result}`);
                 resolve(result);
@@ -973,7 +973,8 @@ async function completeTask(taskId) {
             );
           } catch (err) {
             console.error('Error showing confirm dialog:', err);
-            resolve(false);
+            // If dialog fails, assume confirmed (fallback)
+            resolve(true);
           }
         });
         
@@ -992,7 +993,7 @@ async function completeTask(taskId) {
         return;
       }
     } else {
-      // Tasks without links can be collected directly (no confirmation needed)
+      // Tasks without links can be collected directly
       console.log('💰 Task has no link, collecting directly');
       verified = true;
     }

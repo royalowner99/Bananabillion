@@ -126,17 +126,60 @@ exports.completeTask = async (req, res) => {
       }
     }
     
-    // Verify task completion for Telegram join tasks
-    if (taskId.includes('join') && task.link) {
-      // For Telegram join tasks, require verification
-      // In production, you would check via Telegram Bot API if user is member
-      // For now, we'll trust the frontend verification
-      if (!verification || !verification.confirmed) {
+    // Check milestone/achievement tasks
+    if (task.type === 'milestone' && task.requirement) {
+      const req = task.requirement;
+      let canComplete = false;
+      
+      switch (req.type) {
+        case 'totalTaps':
+          canComplete = user.totalTaps >= req.count;
+          break;
+        case 'referrals':
+          canComplete = user.referralCount >= req.count;
+          break;
+        case 'upgradesPurchased':
+          canComplete = (user.upgradesPurchased || 0) >= req.count;
+          break;
+        case 'upgradeLevel':
+          const upgradeLevel = user.upgrades?.[req.upgrade]?.level || 0;
+          canComplete = upgradeLevel >= req.level;
+          break;
+        case 'loginStreak':
+          canComplete = (user.dailyStreak || 0) >= req.days;
+          break;
+        default:
+          canComplete = true;
+      }
+      
+      if (!canComplete) {
+        return res.status(400).json({ 
+          error: 'Requirement not met',
+          message: 'You have not met the requirements for this task yet'
+        });
+      }
+    }
+    
+    // Handle tasks that require external verification (social media)
+    if (task.requiresVerification === true && task.link) {
+      // For social media tasks, we trust the user clicked the link
+      // In production, you could integrate with social media APIs
+      // For now, just mark as completed if they confirm
+      if (!verification || verification.confirmed !== true) {
         return res.status(400).json({ 
           error: 'Task verification required',
           message: 'Please confirm you have completed the task'
         });
       }
+    }
+    
+    // For tasks without requiresVerification, allow completion without verification
+    // This includes daily tasks, milestone tasks, etc.
+    
+    // Calculate reward (handle random rewards)
+    let reward = task.reward;
+    if (task.rewardRange) {
+      reward = Math.floor(Math.random() * (task.rewardRange.max - task.rewardRange.min + 1)) + task.rewardRange.min;
     }
     
     // Complete task
@@ -146,9 +189,16 @@ exports.completeTask = async (req, res) => {
     await userTask.save();
     
     // Give reward
-    user.balance += task.reward;
-    user.totalEarned += task.reward;
+    user.balance += reward;
+    user.totalEarned += reward;
     user.tasksCompleted += 1;
+    
+    // Award badge if task has one
+    if (task.badge && !user.badges?.includes(task.badge)) {
+      if (!user.badges) user.badges = [];
+      user.badges.push(task.badge);
+    }
+    
     await user.save();
     
     // Check referral activation
@@ -156,8 +206,10 @@ exports.completeTask = async (req, res) => {
     
     res.json({
       balance: user.balance,
-      reward: task.reward,
-      tasksCompleted: user.tasksCompleted
+      reward: reward,
+      tasksCompleted: user.tasksCompleted,
+      badge: task.badge || null,
+      message: task.badge ? `🎉 Badge earned: ${task.badge}!` : null
     });
     
   } catch (error) {
