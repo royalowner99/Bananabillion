@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BillionBanana - BBN Features</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .glow { text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+    .card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body class="text-white min-h-screen">
+  <div id="app" class="container mx-auto p-4 max-w-md">
+    
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-4xl font-bold glow mb-2">🍌 BillionBanana</h1>
+      <div class="text-2xl font-bold" id="balance">0 BBN</div>
+      <div class="text-sm opacity-75" id="balanceINR">₹0.00</div>
+    </div>
+
+    <!-- Daily Limit -->
+    <div class="card rounded-xl p-4 mb-4">
+      <div class="flex justify-between mb-2">
+        <span>Daily Mining</span>
+        <span id="dailyMined">0/1500 BBN</span>
+      </div>
+      <div class="w-full bg-black bg-opacity-30 rounded-full h-3">
+        <div id="dailyBar" class="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Level & XP -->
+    <div class="card rounded-xl p-4 mb-4">
+      <div class="flex justify-between mb-2">
+        <span id="levelText">Level 1</span>
+        <span id="xpText">0/100 XP</span>
+      </div>
+      <div class="w-full bg-black bg-opacity-30 rounded-full h-3">
+        <div id="xpBar" class="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4 overflow-x-auto">
+      <button onclick="showTab('boosters')" class="px-4 py-2 rounded-lg bg-white bg-opacity-20 whitespace-nowrap">🚀 Boosters</button>
+      <button onclick="showTab('shop')" class="px-4 py-2 rounded-lg bg-white bg-opacity-20 whitespace-nowrap">🎡 Shop</button>
+      <button onclick="showTab('withdraw')" class="px-4 py-2 rounded-lg bg-white bg-opacity-20 whitespace-nowrap">💰 Withdraw</button>
+    </div>
+
+    <!-- Boosters Tab -->
+    <div id="boostersTab" class="space-y-4">
+      <h2 class="text-2xl font-bold mb-4">🚀 Boosters</h2>
+      
+      <!-- Free Boosters -->
+      <div class="card rounded-xl p-4">
+        <h3 class="font-bold mb-3">Free Boosters (Watch Ad)</h3>
+        <div class="space-y-2">
+          <button onclick="activateFreeBooster('turbo')" class="w-full p-3 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 font-bold">
+            🚀 Turbo (2× for 30s)
+          </button>
+          <button onclick="activateFreeBooster('energy_refill')" class="w-full p-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 font-bold">
+            ⚡ Energy Refill
+          </button>
+          <button onclick="activateFreeBooster('lucky_banana')" class="w-full p-3 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 font-bold">
+            🍌 Lucky Banana (200-2000 BBN)
+          </button>
+        </div>
+      </div>
+
+      <!-- Paid Boosters -->
+      <div class="card rounded-xl p-4">
+        <h3 class="font-bold mb-3">Premium Boosters</h3>
+        <div class="space-y-3">
+          <div class="bg-black bg-opacity-30 rounded-lg p-3">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <div class="font-bold">👑 VIP Auto-Miner</div>
+                <div class="text-xs opacity-75">1 coin every 3 sec + 2× XP</div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-green-400">₹49</div>
+                <div class="text-xs">/month</div>
+              </div>
+            </div>
+            <button onclick="purchaseBooster('vip_auto_miner', 49)" class="w-full py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 font-bold">
+              Buy Now
+            </button>
+          </div>
+
+          <div class="bg-black bg-opacity-30 rounded-lg p-3">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <div class="font-bold">⚡ Super Energy</div>
+                <div class="text-xs opacity-75">Max energy 1000 → 5000</div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-green-400">₹29</div>
+              </div>
+            </div>
+            <button onclick="purchaseBooster('super_energy', 29)" class="w-full py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 font-bold">
+              Buy Now
+            </button>
+          </div>
+
+          <div class="bg-black bg-opacity-30 rounded-lg p-3">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <div class="font-bold">💎 Mega Booster</div>
+                <div class="text-xs opacity-75">+20% speed, +10% XP, Golden Badge</div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-green-400">₹149</div>
+              </div>
+            </div>
+            <button onclick="purchaseBooster('mega_booster', 149)" class="w-full py-2 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 font-bold">
+              Buy Now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shop Tab -->
+    <div id="shopTab" class="space-y-4 hidden">
+      <h2 class="text-2xl font-bold mb-4">🎡 Shop</h2>
+      
+      <div class="card rounded-xl p-4">
+        <div class="text-center mb-4">
+          <div class="text-6xl mb-2">🎡</div>
+          <div class="font-bold text-xl">Wheel Spin</div>
+          <div class="text-sm opacity-75">Win 500-25,000 BBN!</div>
+        </div>
+        <button onclick="spinWheel()" class="w-full py-3 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 font-bold text-lg">
+          Spin for ₹10
+        </button>
+      </div>
+
+      <div class="card rounded-xl p-4">
+        <div class="text-center mb-4">
+          <div class="text-6xl mb-2">🎁</div>
+          <div class="font-bold text-xl">Mystery Box</div>
+          <div class="text-sm opacity-75">10K BBN + 7 Days VIP + Mega Booster</div>
+        </div>
+        <button onclick="openMysteryBox()" class="w-full py-3 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 font-bold text-lg">
+          Open for ₹49
+        </button>
+      </div>
+
+      <div class="card rounded-xl p-4">
+        <div class="text-center mb-4">
+          <div class="text-6xl mb-2">🎉</div>
+          <div class="font-bold text-xl">Banana Pass</div>
+          <div class="text-sm opacity-75">Extra rewards + Exclusive skins</div>
+        </div>
+        <button onclick="buyBananaPass()" class="w-full py-3 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 font-bold text-lg">
+          Subscribe for ₹79/month
+        </button>
+      </div>
+    </div>
+
+    <!-- Withdraw Tab -->
+    <div id="withdrawTab" class="space-y-4 hidden">
+      <h2 class="text-2xl font-bold mb-4">💰 Withdraw</h2>
+      
+      <div class="card rounded-xl p-4">
+        <div class="mb-4">
+          <label class="block mb-2">BBN Amount</label>
+          <input type="number" id="withdrawBBN" placeholder="2000000" class="w-full p-3 rounded-lg bg-black bg-opacity-30 text-white" oninput="calculateINR()">
+          <div class="text-sm opacity-75 mt-1">Minimum: 2,000,000 BBN (₹20)</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-2">INR Amount</label>
+          <input type="text" id="withdrawINR" readonly class="w-full p-3 rounded-lg bg-black bg-opacity-30 text-white">
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-2">UPI ID</label>
+          <input type="text" id="upiId" placeholder="yourname@upi" class="w-full p-3 rounded-lg bg-black bg-opacity-30 text-white">
+        </div>
+
+        <button onclick="requestWithdrawal()" class="w-full py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 font-bold text-lg">
+          Request Withdrawal
+        </button>
+      </div>
+
+      <div class="card rounded-xl p-4">
+        <h3 class="font-bold mb-3">Withdrawal History</h3>
+        <div id="withdrawalHistory" class="space-y-2">
+          <div class="text-center opacity-50 py-4">No withdrawals yet</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    const API_URL = window.location.origin.replace(':5500', ':3000') + '/api';
+    let authToken = localStorage.getItem('token');
+
+    function showTab(tab) {
+      document.getElementById('boostersTab').classList.add('hidden');
+      document.getElementById('shopTab').classList.add('hidden');
+      document.getElementById('withdrawTab').classList.add('hidden');
+      document.getElementById(tab + 'Tab').classList.remove('hidden');
+    }
+
+    async function purchaseBooster(boosterId, price) {
+      try {
+        const orderRes = await fetch(`${API_URL}/payment/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ itemType: 'booster', itemId: boosterId, amount: price })
+        });
+        const order = await orderRes.json();
+        
+        const options = {
+          key: 'rzp_test_RkqZbX5NtH8bf4',
+          amount: order.amount,
+          currency: order.currency,
+          order_id: order.orderId,
+          handler: async function(response) {
+            await fetch(`${API_URL}/payment/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify(response)
+            });
+            alert('✅ Purchase successful!');
+          }
+        };
+        new Razorpay(options).open();
+      } catch (error) {
+        alert('❌ Purchase failed');
+      }
+    }
+
+    async function spinWheel() {
+      purchaseBooster('wheel_spin', 10);
+    }
+
+    async function openMysteryBox() {
+      purchaseBooster('mystery_box', 49);
+    }
+
+    async function buyBananaPass() {
+      purchaseBooster('banana_pass', 79);
+    }
+
+    function calculateINR() {
+      const bbn = document.getElementById('withdrawBBN').value;
+      const inr = (bbn / 1000000) * 10;
+      document.getElementById('withdrawINR').value = '₹' + inr.toFixed(2);
+    }
+
+    async function requestWithdrawal() {
+      const bbn = document.getElementById('withdrawBBN').value;
+      const upi = document.getElementById('upiId').value;
+      
+      try {
+        const res = await fetch(`${API_URL}/withdrawal/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ bbnAmount: parseInt(bbn), upiId: upi })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert('✅ Withdrawal requested!');
+        } else {
+          alert('❌ ' + data.error);
+        }
+      } catch (error) {
+        alert('❌ Request failed');
+      }
+    }
+
+    async function activateFreeBooster(type) {
+      try {
+        const res = await fetch(`${API_URL}/booster/activate-free`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ boosterId: type })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert('✅ ' + data.message);
+        } else {
+          alert('❌ ' + data.error);
+        }
+      } catch (error) {
+        alert('❌ Activation failed');
+      }
+    }
+  </script>
+</body>
+</html>
