@@ -24,6 +24,11 @@ const taskSchema = new mongoose.Schema({
     enum: ['daily', 'one-time', 'partner', 'cooldown'],
     default: 'one-time'
   },
+  category: {
+    type: String,
+    enum: ['social', 'daily', 'special', 'partner', 'achievement'],
+    default: 'social'
+  },
   cooldownSeconds: {
     type: Number,
     default: 0
@@ -35,6 +40,15 @@ const taskSchema = new mongoose.Schema({
   link: {
     type: String,
     default: null
+  },
+  requiresVerification: {
+    type: Boolean,
+    default: false
+  },
+  verificationMethod: {
+    type: String,
+    enum: ['telegram', 'youtube', 'twitter', 'manual', 'auto'],
+    default: 'manual'
   },
   isActive: {
     type: Boolean,

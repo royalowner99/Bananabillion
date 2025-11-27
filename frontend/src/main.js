@@ -688,129 +688,182 @@ async function loadTasks(forceRefresh = false) {
   }
 }
 
-// Render Tasks - Advanced with better sorting and UI
+// Render Tasks - Enhanced with categories and better status
 function renderTasks(tasks) {
   try {
     const tasksList = document.getElementById('tasksList');
     tasksList.innerHTML = '';
     
-    // Sort tasks: available first, then by reward, then completed
-    const sortedTasks = tasks.sort((a, b) => {
-      // Priority 1: Available tasks first
-      if (a.canComplete && !b.canComplete) return -1;
-      if (!a.canComplete && b.canComplete) return 1;
-      
-      // Priority 2: Higher rewards first
-      if (a.canComplete && b.canComplete) {
-        return b.reward - a.reward;
+    // Group tasks by category
+    const categories = {
+      social: { title: '📱 Social Media', tasks: [] },
+      daily: { title: '🔄 Daily Tasks', tasks: [] },
+      special: { title: '⭐ Special Tasks', tasks: [] },
+      partner: { title: '🤝 Partner Tasks', tasks: [] },
+      achievement: { title: '🏆 Achievements', tasks: [] }
+    };
+    
+    // Sort tasks into categories
+    tasks.forEach(task => {
+      const category = task.category || 'social';
+      if (categories[category]) {
+        categories[category].tasks.push(task);
       }
-      
-      // Priority 3: Completed tasks last
-      if (a.completed && !b.completed) return 1;
-      if (!a.completed && b.completed) return -1;
-      
-      return 0;
     });
     
-    sortedTasks.forEach((task, index) => {
-      const card = document.createElement('div');
-      card.className = 'task-card rounded-2xl p-4';
+    // Render each category
+    Object.keys(categories).forEach(categoryKey => {
+      const category = categories[categoryKey];
       
-      // Add animation delay for staggered appearance
-      card.style.animationDelay = `${index * 0.05}s`;
+      if (category.tasks.length === 0) return;
       
-      // Determine button state and text
-      let buttonText = '🎯 Start';
-      let canComplete = task.canComplete;
-      let buttonClass = 'btn-primary';
-      let cardOpacity = '';
+      // Sort tasks within category: available first, then by reward
+      category.tasks.sort((a, b) => {
+        // Priority 1: Available tasks first
+        if (a.status === 'available' && b.status !== 'available') return -1;
+        if (a.status !== 'available' && b.status === 'available') return 1;
+        
+        // Priority 2: Higher rewards first
+        if (a.status === 'available' && b.status === 'available') {
+          return b.reward - a.reward;
+        }
+        
+        // Priority 3: Completed tasks last
+        if (a.status === 'completed' && b.status !== 'completed') return 1;
+        if (a.status !== 'completed' && b.status === 'completed') return -1;
+        
+        return 0;
+      });
       
-      if (task.completed && task.type === 'one-time') {
-        buttonText = '✅ Completed';
-        canComplete = false;
-        buttonClass = 'btn-primary btn-disabled';
-        cardOpacity = 'opacity-60';
-      } else if (task.type === 'daily' && task.completed && task.timeRemaining > 0) {
-        const hours = Math.floor(task.timeRemaining / 3600);
-        const minutes = Math.floor((task.timeRemaining % 3600) / 60);
-        buttonText = `⏰ ${hours}h ${minutes}m`;
-        canComplete = false;
-        buttonClass = 'btn-primary btn-disabled';
-        cardOpacity = 'opacity-75';
-      } else if (!task.canComplete && task.timeRemaining > 0) {
-        const hours = Math.floor(task.timeRemaining / 3600);
-        const minutes = Math.floor((task.timeRemaining % 3600) / 60);
-        buttonText = `⏰ ${hours}h ${minutes}m`;
-        canComplete = false;
-        buttonClass = 'btn-primary btn-disabled';
-        cardOpacity = 'opacity-75';
-      } else if (task.canComplete && !task.link) {
-        // Tasks without links show "Collect" (can be claimed directly)
-        buttonText = '💰 Collect';
-        card.classList.add('task-available');
-      } else if (task.canComplete && task.link) {
-        // Tasks with links show "Start" (need to complete action first)
-        buttonText = '🎯 Start';
-        card.classList.add('task-available');
-      }
-      
-      // Add opacity class
-      if (cardOpacity) {
-        card.classList.add(cardOpacity);
-      }
-      
-      // Add completion count for repeatable tasks
-      let completionInfo = '';
-      if (task.completionCount > 0 && task.type !== 'one-time') {
-        completionInfo = `<div class="text-xs opacity-60 mt-1">✨ Completed ${task.completionCount} times</div>`;
-      }
-      
-      // Add progress indicator for tasks with cooldown
-      let progressBar = '';
-      if (task.timeRemaining > 0 && (task.type === 'daily' || task.type === 'cooldown')) {
-        const cooldownTotal = task.type === 'daily' ? 86400 : task.cooldownSeconds || 86400;
-        const progressPercent = ((cooldownTotal - task.timeRemaining) / cooldownTotal) * 100;
-        progressBar = `
-          <div class="w-full bg-black bg-opacity-30 rounded-full h-1 mt-2 overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
-          </div>
-        `;
-      }
-      
-      card.innerHTML = `
-        <div class="flex justify-between items-center gap-4">
-          <div class="flex-1">
-            <div class="flex items-center gap-3 mb-2">
-              <span class="text-4xl ${canComplete ? 'animate-bounce' : ''}">${task.icon}</span>
-              <div class="flex-1">
-                <div class="font-bold text-lg">${task.title}</div>
-                <div class="text-sm opacity-75">${task.description}</div>
-                ${completionInfo}
-              </div>
-            </div>
-            <div class="flex items-center gap-3 flex-wrap">
-              <div class="flex items-center gap-2">
-                <span class="text-yellow-400 font-bold glow text-lg">+${formatNumber(task.reward)}</span>
-                <span class="text-xs opacity-75">coins</span>
-              </div>
-              ${task.type === 'daily' ? '<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded-full border border-blue-400 border-opacity-30">🔄 Daily</span>' : ''}
-              ${task.type === 'one-time' ? '<span class="text-xs bg-purple-500 bg-opacity-30 px-2 py-1 rounded-full border border-purple-400 border-opacity-30">⭐ One-time</span>' : ''}
-              ${task.type === 'cooldown' ? '<span class="text-xs bg-orange-500 bg-opacity-30 px-2 py-1 rounded-full border border-orange-400 border-opacity-30">⏱️ Cooldown</span>' : ''}
-            </div>
-            ${progressBar}
-          </div>
-          <button 
-            onclick="completeTask('${task.taskId}')"
-            class="${buttonClass} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-300 hover:scale-105"
-            ${!canComplete ? 'disabled' : ''}
-          >
-            ${buttonText}
-          </button>
+      // Add category header
+      const categoryHeader = document.createElement('div');
+      categoryHeader.className = 'text-xl font-bold mb-3 mt-6 first:mt-0';
+      categoryHeader.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span>${category.title}</span>
+          <span class="text-sm font-normal opacity-60">${category.tasks.length} tasks</span>
         </div>
       `;
+      tasksList.appendChild(categoryHeader);
       
-      tasksList.appendChild(card);
+      // Render tasks in this category
+      category.tasks.forEach((task, index) => {
+        const card = document.createElement('div');
+        card.className = 'task-card rounded-2xl p-4 mb-3';
+        
+        // Add animation delay
+        card.style.animationDelay = `${index * 0.05}s`;
+        
+        // Determine button state and styling based on status
+        let buttonText = '';
+        let buttonClass = 'btn-primary';
+        let cardClass = '';
+        let statusBadge = '';
+        
+        switch (task.status) {
+          case 'completed':
+            buttonText = '✅ Completed';
+            buttonClass = 'btn-primary btn-disabled bg-green-600 bg-opacity-30 border-green-500';
+            cardClass = 'opacity-70 border-green-500 border-opacity-20';
+            statusBadge = '<span class="text-xs bg-green-500 bg-opacity-30 px-2 py-1 rounded-full border border-green-400 border-opacity-50">✅ Done</span>';
+            break;
+            
+          case 'cooldown':
+            const hours = Math.floor(task.timeRemaining / 3600);
+            const minutes = Math.floor((task.timeRemaining % 3600) / 60);
+            buttonText = `⏰ ${hours}h ${minutes}m`;
+            buttonClass = 'btn-primary btn-disabled bg-blue-600 bg-opacity-20 border-blue-500';
+            cardClass = 'opacity-80 border-blue-500 border-opacity-20';
+            statusBadge = '<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded-full border border-blue-400 border-opacity-50">⏰ Cooldown</span>';
+            break;
+            
+          case 'available':
+          default:
+            if (task.link) {
+              buttonText = '🎯 Complete Now';
+              cardClass = 'border-yellow-500 border-opacity-30 shadow-lg';
+              statusBadge = '<span class="text-xs bg-yellow-500 bg-opacity-30 px-2 py-1 rounded-full border border-yellow-400 border-opacity-50 animate-pulse">🎯 Available</span>';
+            } else {
+              buttonText = '💰 Claim Reward';
+              cardClass = 'border-green-500 border-opacity-30 shadow-lg';
+              statusBadge = '<span class="text-xs bg-green-500 bg-opacity-30 px-2 py-1 rounded-full border border-green-400 border-opacity-50 animate-pulse">💰 Claim</span>';
+            }
+            card.classList.add('task-available');
+            break;
+        }
+        
+        card.classList.add(cardClass);
+        
+        // Add completion count for repeatable tasks
+        let completionInfo = '';
+        if (task.completionCount > 0 && task.type !== 'one-time') {
+          completionInfo = `<div class="text-xs opacity-60 mt-1">✨ Completed ${task.completionCount} times</div>`;
+        }
+        
+        // Add progress indicator for tasks with cooldown
+        let progressBar = '';
+        if (task.timeRemaining > 0 && (task.type === 'daily' || task.type === 'cooldown')) {
+          const cooldownTotal = task.type === 'daily' ? 86400 : (task.cooldownSeconds || 86400);
+          const progressPercent = ((cooldownTotal - task.timeRemaining) / cooldownTotal) * 100;
+          progressBar = `
+            <div class="w-full bg-black bg-opacity-30 rounded-full h-2 mt-2 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full transition-all duration-300" style="width: ${progressPercent}%"></div>
+            </div>
+          `;
+        }
+        
+        // Verification badge
+        let verificationBadge = '';
+        if (task.requiresVerification && task.status === 'available') {
+          verificationBadge = '<span class="text-xs bg-purple-500 bg-opacity-30 px-2 py-1 rounded-full border border-purple-400 border-opacity-50">🔐 Verified</span>';
+        }
+        
+        card.innerHTML = `
+          <div class="flex justify-between items-center gap-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-4xl ${task.status === 'available' ? 'animate-bounce' : ''}">${task.icon}</span>
+                <div class="flex-1">
+                  <div class="font-bold text-lg">${task.title}</div>
+                  <div class="text-sm opacity-75">${task.description}</div>
+                  ${completionInfo}
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap mt-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-yellow-400 font-bold glow text-lg">+${formatNumber(task.reward)}</span>
+                  <span class="text-xs opacity-75">coins</span>
+                </div>
+                ${statusBadge}
+                ${verificationBadge}
+                ${task.type === 'daily' ? '<span class="text-xs bg-blue-500 bg-opacity-30 px-2 py-1 rounded-full border border-blue-400 border-opacity-30">🔄 Daily</span>' : ''}
+              </div>
+              ${progressBar}
+            </div>
+            <button 
+              onclick="completeTask('${task.taskId}')"
+              class="${buttonClass} py-3 px-6 rounded-xl font-bold text-sm whitespace-nowrap transition-all duration-300 hover:scale-105 ${task.status === 'available' ? 'animate-pulse' : ''}"
+              ${task.status !== 'available' ? 'disabled' : ''}
+            >
+              ${buttonText}
+            </button>
+          </div>
+        `;
+        
+        tasksList.appendChild(card);
+      });
     });
+    
+    // Show message if no tasks
+    if (tasks.length === 0) {
+      tasksList.innerHTML = `
+        <div class="text-center py-12 opacity-60">
+          <div class="text-6xl mb-4">🎯</div>
+          <div class="text-xl font-bold mb-2">No Tasks Available</div>
+          <div class="text-sm">Check back later for new tasks!</div>
+        </div>
+      `;
+    }
     
     console.log('✅ Tasks rendered successfully');
     
@@ -1781,6 +1834,7 @@ async function adminCreateTask() {
   const icon = document.getElementById('taskIcon').value.trim() || '🎯';
   const link = document.getElementById('taskLink').value.trim();
   const type = document.getElementById('taskType').value;
+  const category = document.getElementById('taskCategory')?.value || 'social';
   
   if (!taskId || !title || !desc || !reward) {
     showNotification('❌ Please fill all required fields', 'error');
@@ -1801,7 +1855,8 @@ async function adminCreateTask() {
         reward,
         icon,
         link,
-        type
+        type,
+        category
       })
     });
     
@@ -1820,6 +1875,7 @@ async function adminCreateTask() {
       
       // Reload tasks
       adminLoadTasks();
+      loadTasks(true); // Refresh user tasks too
     } else {
       showNotification(`❌ ${data.error}`, 'error');
     }

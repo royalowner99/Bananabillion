@@ -4,7 +4,7 @@ const { checkReferralActivation } = require('../utils/referralLogic');
 
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ isActive: true }).sort({ order: 1 });
+    const tasks = await Task.find({ isActive: true }).sort({ category: 1, order: 1 });
     const userTasks = await UserTask.find({ userId: req.userId });
     
     const userTaskMap = {};
@@ -18,10 +18,12 @@ exports.getTasks = async (req, res) => {
       const userTask = userTaskMap[task.taskId];
       let canComplete = true;
       let timeRemaining = 0;
+      let status = 'available'; // available, completed, cooldown
       
       if (userTask) {
         if (task.type === 'one-time' && userTask.completed) {
           canComplete = false;
+          status = 'completed';
         } else if (task.type === 'daily' || task.type === 'cooldown') {
           if (userTask.lastCompleted) {
             const timeSinceComplete = (now - userTask.lastCompleted.getTime()) / 1000;
@@ -30,6 +32,7 @@ exports.getTasks = async (req, res) => {
             if (timeSinceComplete < cooldown) {
               canComplete = false;
               timeRemaining = cooldown - timeSinceComplete;
+              status = 'cooldown';
             }
           }
         }
@@ -41,16 +44,32 @@ exports.getTasks = async (req, res) => {
         description: task.description,
         reward: task.reward,
         type: task.type,
+        category: task.category || 'social',
         icon: task.icon,
         link: task.link,
+        requiresVerification: task.requiresVerification || false,
+        verificationMethod: task.verificationMethod || 'manual',
         completed: userTask?.completed || false,
         completionCount: userTask?.completionCount || 0,
         canComplete,
+        status,
         timeRemaining: Math.ceil(timeRemaining)
       };
     });
     
-    res.json({ tasks: tasksWithStatus });
+    // Group tasks by category
+    const groupedTasks = {
+      social: tasksWithStatus.filter(t => t.category === 'social'),
+      daily: tasksWithStatus.filter(t => t.category === 'daily'),
+      special: tasksWithStatus.filter(t => t.category === 'special'),
+      partner: tasksWithStatus.filter(t => t.category === 'partner'),
+      achievement: tasksWithStatus.filter(t => t.category === 'achievement')
+    };
+    
+    res.json({ 
+      tasks: tasksWithStatus,
+      groupedTasks
+    });
     
   } catch (error) {
     console.error('Get tasks error:', error);
@@ -149,7 +168,19 @@ exports.completeTask = async (req, res) => {
 
 exports.createTask = async (req, res) => {
   try {
-    const { taskId, title, description, reward, type, cooldownSeconds, icon, link } = req.body;
+    const { 
+      taskId, 
+      title, 
+      description, 
+      reward, 
+      type, 
+      category,
+      cooldownSeconds, 
+      icon, 
+      link,
+      requiresVerification,
+      verificationMethod
+    } = req.body;
     
     if (!taskId || !title || !description || !reward) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -161,15 +192,35 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ error: 'Task ID already exists' });
     }
     
+    // Auto-detect verification method from link
+    let autoVerificationMethod = verificationMethod || 'manual';
+    let autoRequiresVerification = requiresVerification || false;
+    
+    if (link) {
+      if (link.includes('t.me')) {
+        autoVerificationMethod = 'telegram';
+        autoRequiresVerification = true;
+      } else if (link.includes('youtube.com')) {
+        autoVerificationMethod = 'youtube';
+        autoRequiresVerification = true;
+      } else if (link.includes('twitter.com') || link.includes('x.com')) {
+        autoVerificationMethod = 'twitter';
+        autoRequiresVerification = true;
+      }
+    }
+    
     const task = new Task({
       taskId,
       title,
       description,
       reward,
       type: type || 'one-time',
+      category: category || 'social',
       cooldownSeconds: cooldownSeconds || 0,
       icon: icon || '🎯',
-      link: link || null
+      link: link || null,
+      requiresVerification: autoRequiresVerification,
+      verificationMethod: autoVerificationMethod
     });
     
     await task.save();
