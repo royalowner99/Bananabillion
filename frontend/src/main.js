@@ -1296,6 +1296,8 @@ function switchTab(tab, event) {
     loadReferralStats();
   } else if (tab === 'profile') {
     loadProfileData();
+  } else if (tab === 'withdraw') {
+    loadWithdrawalHistory();
   } else if (tab === 'admin') {
     if (isAdmin()) {
       loadAdminStats();
@@ -1650,6 +1652,201 @@ async function adminViewRecentUsers() {
   } catch (error) {
     console.error('Recent users error:', error);
     showNotification('❌ Failed to load users: ' + error.message);
+  }
+}
+
+// ============================================
+// BBN INTEGRATION FUNCTIONS
+// ============================================
+
+// Purchase booster with Razorpay
+async function purchaseBooster(boosterId, price) {
+  try {
+    const orderRes = await fetch(`${API_URL}/payment/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ itemType: 'booster', itemId: boosterId, amount: price })
+    });
+    const order = await orderRes.json();
+    
+    if (!orderRes.ok) {
+      throw new Error(order.error || 'Failed to create order');
+    }
+    
+    const options = {
+      key: 'rzp_test_RkqZbX5NtH8bf4',
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.orderId,
+      name: 'BananaBillion',
+      description: boosterId,
+      handler: async function(response) {
+        try {
+          await fetch(`${API_URL}/payment/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify(response)
+          });
+          showNotification('✅ Purchase successful!');
+          tg.HapticFeedback.notificationOccurred('success');
+          loadProfile(); // Refresh user data
+        } catch (error) {
+          showNotification('❌ Verification failed');
+        }
+      }
+    };
+    
+    const rzp = new Razorpay(options);
+    rzp.open();
+  } catch (error) {
+    console.error('Purchase error:', error);
+    showNotification('❌ Purchase failed: ' + error.message);
+    tg.HapticFeedback.notificationOccurred('error');
+  }
+}
+
+// Activate free booster
+async function activateFreeBooster(type) {
+  try {
+    const res = await fetch(`${API_URL}/booster/activate-free`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ boosterId: type })
+    });
+    const data = await res.json();
+    
+    if (res.ok) {
+      showNotification('✅ ' + data.message);
+      tg.HapticFeedback.notificationOccurred('success');
+      
+      // Apply booster effects
+      if (type === 'energy_refill') {
+        userData.energy = userData.maxEnergy;
+        updateUI();
+      } else if (type === 'lucky_banana' && data.reward) {
+        userData.balance += data.reward;
+        updateUI();
+        showNotification(`🍌 Won ${formatNumber(data.reward)} BBN!`);
+      }
+      
+      loadProfile(); // Refresh user data
+    } else {
+      showNotification('❌ ' + data.error);
+      tg.HapticFeedback.notificationOccurred('error');
+    }
+  } catch (error) {
+    console.error('Activation error:', error);
+    showNotification('❌ Activation failed');
+    tg.HapticFeedback.notificationOccurred('error');
+  }
+}
+
+// Shop functions
+async function spinWheel() {
+  purchaseBooster('wheel_spin', 10);
+}
+
+async function openMysteryBox() {
+  purchaseBooster('mystery_box', 49);
+}
+
+async function buyBananaPass() {
+  purchaseBooster('banana_pass', 79);
+}
+
+// Withdrawal functions
+function calculateINR() {
+  const bbn = document.getElementById('withdrawBBN').value;
+  const inr = (bbn / 100000) * 1; // 100,000 BBN = ₹1
+  document.getElementById('withdrawINR').value = '₹' + inr.toFixed(2);
+}
+
+async function requestWithdrawal() {
+  const bbn = document.getElementById('withdrawBBN').value;
+  const upi = document.getElementById('upiId').value;
+  
+  if (!bbn || bbn < 2000000) {
+    showNotification('❌ Minimum withdrawal is 2,000,000 BBN');
+    return;
+  }
+  
+  if (!upi || !upi.includes('@')) {
+    showNotification('❌ Please enter a valid UPI ID');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/withdrawal/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ bbnAmount: parseInt(bbn), upiId: upi })
+    });
+    const data = await res.json();
+    
+    if (res.ok) {
+      showNotification('✅ Withdrawal requested! Processing within 24-48 hours.');
+      tg.HapticFeedback.notificationOccurred('success');
+      document.getElementById('withdrawBBN').value = '';
+      document.getElementById('withdrawINR').value = '';
+      document.getElementById('upiId').value = '';
+      loadWithdrawalHistory();
+      loadProfile(); // Refresh balance
+    } else {
+      showNotification('❌ ' + data.error);
+      tg.HapticFeedback.notificationOccurred('error');
+    }
+  } catch (error) {
+    console.error('Withdrawal error:', error);
+    showNotification('❌ Request failed');
+    tg.HapticFeedback.notificationOccurred('error');
+  }
+}
+
+// Load withdrawal history
+async function loadWithdrawalHistory() {
+  try {
+    const res = await fetch(`${API_URL}/withdrawal/history`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    
+    const historyDiv = document.getElementById('withdrawalHistory');
+    historyDiv.innerHTML = '';
+    
+    if (data.withdrawals && data.withdrawals.length > 0) {
+      data.withdrawals.forEach(w => {
+        const card = document.createElement('div');
+        card.className = 'bg-black bg-opacity-30 rounded-lg p-3 mb-2';
+        
+        let statusColor = 'text-yellow-400';
+        let statusIcon = '⏳';
+        if (w.status === 'completed') {
+          statusColor = 'text-green-400';
+          statusIcon = '✅';
+        } else if (w.status === 'rejected') {
+          statusColor = 'text-red-400';
+          statusIcon = '❌';
+        }
+        
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-bold">${formatNumber(w.bbnAmount)} BBN</div>
+              <div class="text-xs opacity-75">${new Date(w.createdAt).toLocaleDateString()}</div>
+            </div>
+            <div class="text-right">
+              <div class="${statusColor} font-bold">${statusIcon} ${w.status}</div>
+              <div class="text-xs">₹${w.inrAmount}</div>
+            </div>
+          </div>
+        `;
+        historyDiv.appendChild(card);
+      });
+    } else {
+      historyDiv.innerHTML = '<div class="text-center opacity-50 py-4">No withdrawals yet</div>';
+    }
+  } catch (error) {
+    console.error('Load withdrawal history error:', error);
   }
 }
 
