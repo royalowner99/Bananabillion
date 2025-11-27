@@ -793,18 +793,20 @@ function renderTasks(tasks) {
           default:
             if (task.link) {
               buttonText = '🎯 Complete Now';
-              cardClass = 'border-yellow-500 border-opacity-30 shadow-lg';
+              cardClass = 'border-yellow-500 border-opacity-30 shadow-lg task-available';
               statusBadge = '<span class="text-xs bg-yellow-500 bg-opacity-30 px-2 py-1 rounded-full border border-yellow-400 border-opacity-50 animate-pulse">🎯 Available</span>';
             } else {
               buttonText = '💰 Claim Reward';
-              cardClass = 'border-green-500 border-opacity-30 shadow-lg';
+              cardClass = 'border-green-500 border-opacity-30 shadow-lg task-available';
               statusBadge = '<span class="text-xs bg-green-500 bg-opacity-30 px-2 py-1 rounded-full border border-green-400 border-opacity-50 animate-pulse">💰 Claim</span>';
             }
-            card.classList.add('task-available');
             break;
         }
         
-        card.classList.add(cardClass);
+        // Add classes safely - split by space and filter empty strings
+        if (cardClass) {
+          cardClass.split(' ').filter(c => c.trim()).forEach(c => card.classList.add(c));
+        }
         
         // Add completion count for repeatable tasks
         let completionInfo = '';
