@@ -100,8 +100,9 @@ exports.getTasks = async (req, res) => {
         }
       }
       
-      // Check milestone requirements
-      if (task.taskType === 'milestone' && task.requirement && userTask.status === 'pending') {
+      // Check milestone requirements AND invite_friend tasks
+      if ((task.taskType === 'milestone' || task.taskType === 'invite_friend') && 
+          task.requirement && userTask.status === 'pending') {
         const req = task.requirement;
         let requirementMet = false;
         
@@ -214,8 +215,10 @@ exports.verifyTask = async (req, res) => {
       
       try {
         // Extract channel/group username from link
-        const linkParts = task.link.split('/');
-        const channelUsername = linkParts[linkParts.length - 1].replace('@', '');
+        // Supports: https://t.me/username or @username
+        let channelUsername = task.link.split('/').pop().replace('@', '');
+        
+        console.log(`Verifying membership for user ${userId} in @${channelUsername}`);
         
         // Check membership using Telegram Bot API
         const botToken = process.env.BOT_TOKEN;
@@ -225,25 +228,39 @@ exports.verifyTask = async (req, res) => {
             params: {
               chat_id: `@${channelUsername}`,
               user_id: userId
-            }
+            },
+            timeout: 10000
           }
         );
+        
+        console.log('Telegram API response:', response.data);
         
         if (response.data.ok) {
           const status = response.data.result.status;
           verified = ['creator', 'administrator', 'member'].includes(status);
-          message = verified ? 'Membership verified!' : 'You are not a member yet';
+          message = verified ? 'Membership verified! ✅' : 'Please join the channel/group first';
+          
+          console.log(`Verification result: ${verified}, status: ${status}`);
         } else {
           message = 'Could not verify membership';
+          console.error('Telegram API returned not ok:', response.data);
         }
       } catch (error) {
         console.error('Telegram API error:', error.response?.data || error.message);
-        message = 'Verification temporarily unavailable';
+        
+        // If verification fails, allow manual confirmation
+        verified = true;
+        message = 'Please confirm you joined the channel/group';
       }
     } else if (task.taskType === 'social') {
       // For social tasks, trust user confirmation
       verified = true;
       message = 'Task verified!';
+    } else if (task.taskType === 'invite_friend') {
+      // Check if user has invited at least 1 friend
+      const user = await User.findOne({ userId });
+      verified = (user?.referralCount || 0) >= 1;
+      message = verified ? 'Referral requirement met!' : 'You need to invite at least 1 friend';
     } else {
       // Other tasks don't need verification
       verified = true;
