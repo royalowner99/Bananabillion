@@ -176,7 +176,7 @@ async function loadProfile() {
 function updateUI() {
   if (!userData) return;
   
-  document.getElementById('balance').textContent = formatNumber(userData.balance);
+  document.getElementById('balance').textContent = formatNumber(userData.balance) + ' BBN';
   document.getElementById('energy').textContent = `${Math.floor(userData.energy)}/${userData.maxEnergy}`;
   document.getElementById('tapPower').textContent = userData.tapPower;
   document.getElementById('totalTaps').textContent = formatNumber(userData.totalTaps || 0);
