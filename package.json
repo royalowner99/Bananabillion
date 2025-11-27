@@ -9,7 +9,7 @@
     "bot": "node bot/index.js",
     "admin": "node admin/server.js",
     "test": "node test-server.js",
-    "build": "npm install && cd frontend && npm install && npm run build",
+    "build": "echo 'No build needed - static frontend'",
     "preview": "vite preview --port 3000"
   },
   "keywords": ["telegram", "mini-app", "game"],
@@ -25,7 +25,6 @@
     "cors": "^2.8.5",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
-    "crypto": "^1.0.1",
     "compression": "^1.7.4",
     "razorpay": "^2.9.2",
     "axios": "^1.6.2",
